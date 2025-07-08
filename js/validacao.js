@@ -100,6 +100,23 @@ function validarFormularioCompleto() {
     
     let todosValidos = true;
     let primeiroErro = null;
+    
+    // Verificar qual opção de entrega está selecionada
+    // Isso garante que estamos usando o valor mais atualizado
+    let metodoEntrega = '';
+    const exibirStep2 = window.dadosGlobais && window.dadosGlobais.config && window.dadosGlobais.config['Step-2-checkout'] === 'Sim';
+    
+    if (exibirStep2) {
+        const metodoSelecionado = document.querySelector('input[name="metodo-envio"]:checked');
+        if (metodoSelecionado) {
+            metodoEntrega = metodoSelecionado.value;
+            console.log('Método de entrega detectado na validação:', metodoEntrega);
+        }
+    }
+    
+    // Usar o valor detectado ou manter o valor global se não for possível detectar
+    const opcaoEntrega = metodoEntrega || window.opcaoEntregaSelecionada;
+    console.log('Opção de entrega para validação:', opcaoEntrega);
 
     // Validar nome do cliente (sempre obrigatório)
     const nomeCliente = document.getElementById('nome-cliente');
@@ -108,38 +125,42 @@ function validarFormularioCompleto() {
         if (!primeiroErro) primeiroErro = nomeCliente;
     }
 
-    // Validar campos específicos baseados na opção de entrega selecionada
-    if (opcaoEntregaSelecionada === 'local') {
-        // Validar mesa/comanda se o campo estiver visível e for obrigatório
-        const containerMesaComanda = document.getElementById('container-mesa-comanda');
-        if (containerMesaComanda && containerMesaComanda.style.display !== 'none') {
-            const mesaComanda = document.getElementById('mesa-comanda');
-            if (mesaComanda && mesaComanda.hasAttribute('required')) {
-                if (!validarCampo(mesaComanda, 'Mesa/Comanda', true)) {
-                    todosValidos = false;
-                    if (!primeiroErro) primeiroErro = mesaComanda;
-                }
+    // Validar campos específicos com base na opção de entrega selecionada
+    if (opcaoEntrega === 'local') {
+        // Validar mesa/comanda se estiver configurado
+        const mesaComanda = document.getElementById('mesa-comanda');
+        if (mesaComanda && mesaComanda.closest('.form-group').style.display !== 'none') {
+            if (!validarCampo(mesaComanda, 'Mesa/Comanda', true)) {
+                todosValidos = false;
+                if (!primeiroErro) primeiroErro = mesaComanda;
             }
         }
-    } else if (opcaoEntregaSelecionada === 'delivery') {
-        // Validar campos de endereço para delivery
+    } else if (opcaoEntrega === 'delivery') {
+        console.log('Validando campos de endereço para delivery');
+        // Validar campos de endereço para entrega
         const camposEndereco = [
-            { id: 'cep', nome: 'CEP', obrigatorio: true },
-            { id: 'endereco', nome: 'Endereço', obrigatorio: true },
-            { id: 'numero', nome: 'Número', obrigatorio: true },
-            { id: 'bairro', nome: 'Bairro', obrigatorio: true },
-            { id: 'cidade', nome: 'Cidade', obrigatorio: true },
-            { id: 'estado', nome: 'Estado', obrigatorio: true },
-            { id: 'complemento', nome: 'Complemento', obrigatorio: false }
+            {id: 'cep', nome: 'CEP'},
+            {id: 'endereco', nome: 'Endereço'},
+            {id: 'numero', nome: 'Número'},
+            {id: 'bairro', nome: 'Bairro'},
+            {id: 'cidade', nome: 'Cidade'},
+            {id: 'estado', nome: 'UF'}
         ];
-
+        
         camposEndereco.forEach(campo => {
             const elemento = document.getElementById(campo.id);
             if (elemento) {
-                if (!validarCampo(elemento, campo.nome, campo.obrigatorio)) {
+                console.log(`Validando campo ${campo.nome}: ${elemento.value}`);
+                // Forçar que todos os campos de endereço sejam obrigatórios para delivery
+                if (!validarCampo(elemento, campo.nome, true)) {
+                    console.log(`Campo ${campo.nome} inválido`);
                     todosValidos = false;
                     if (!primeiroErro) primeiroErro = elemento;
                 }
+            } else {
+                console.log(`Elemento com ID ${campo.id} não encontrado`);
+                // Se um campo obrigatório não for encontrado, a validação falha
+                todosValidos = false;
             }
         });
 
