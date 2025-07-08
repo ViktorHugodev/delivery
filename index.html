@@ -5272,6 +5272,16 @@ function filtrarPorCategoria(categoria) {
                     metodoEnvio = window.opcaoEntregaSelecionada || 'delivery';
                     console.log('Usando método de envio padrão:', metodoEnvio);
                 }
+            } else {
+                // Se não exibir step2, usar o valor padrão
+                metodoEnvio = 'delivery';
+                console.log('Step2 não exibido, usando método padrão:', metodoEnvio);
+            }
+            
+            // Garantir que metodoEnvio nunca seja vazio
+            if (!metodoEnvio) {
+                metodoEnvio = 'delivery';
+                console.log('Método de envio vazio, definindo como padrão:', metodoEnvio);
             }
 
             // Obter itens do carrinho
@@ -5344,17 +5354,21 @@ function filtrarPorCategoria(categoria) {
             // Calcular valor total e formatar itens
             let valorTotal = 0;
             const itensFormatados = carrinho.map(item => {
-                const precoBase = item.precoBase || 0;
-                const precoAdicional = item.precoAdicional || 0;
+                // Garantir que todos os valores de preço sejam números válidos
+                const precoBase = parseFloat(item.precoBase) || 0;
+                const precoAdicional = parseFloat(item.precoAdicional) || 0;
                 const precoTotalItem = precoBase + precoAdicional;
-                const precoTotalComQuantidade = precoTotalItem * item.quantidade;
+                const quantidade = parseInt(item.quantidade) || 1;
+                const precoTotalComQuantidade = precoTotalItem * quantidade;
                 
                 valorTotal += precoTotalComQuantidade;
+                
+                console.log(`Item ${item.titulo}: precoBase=${precoBase}, precoAdicional=${precoAdicional}, precoTotal=${precoTotalItem}, quantidade=${quantidade}`);
                 
                 return {
                     id: item.id,
                     titulo: item.titulo,
-                    quantidade: item.quantidade,
+                    quantidade: quantidade,
                     precoUnitario: precoTotalItem,
                     precoTotal: precoTotalComQuantidade,
                     precoBase: precoBase,
@@ -5363,6 +5377,8 @@ function filtrarPorCategoria(categoria) {
                     imagem: item.imagem || ''
                 };
             });
+            
+            console.log('Valor total calculado:', valorTotal);
 
             // Preparar dados do pedido
             const dadosPedido = {
