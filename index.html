@@ -1462,6 +1462,7 @@
 
     <!-- JavaScript será adicionado na próxima etapa -->
     <script src="compartilhamento.js"></script>
+    <script src="js/validacao.js"></script>
     <script>
         // URLs das planilhas (carregadas do arquivo config.js)
         const URLS = CONFIG_PLANILHAS;
@@ -2837,6 +2838,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Inicializar carregamento de dados
     carregarDados();
+    
+    // Configurar validação em tempo real para os campos do formulário
+    try {
+        configurarValidacaoTempoReal();
+    } catch (err) {
+        console.error('Erro ao configurar validação em tempo real:', err);
+    }
     
     // Adicionar evento de click nos logos para reload
     const logoMobile = document.getElementById('logo-mobile');
@@ -4620,6 +4628,9 @@ function filtrarPorCategoria(categoria) {
             const formCliente = document.getElementById('form-cliente');
             if (formCliente) {
                 formCliente.reset();
+                
+                // Limpar todas as validações visuais
+                limparValidacoesVisuais();
             }
             
             // Limpar observações dos itens
@@ -5063,6 +5074,13 @@ function filtrarPorCategoria(categoria) {
             } catch (e) {
                 console.error('Erro ao mostrar campos específicos:', e);
             }
+            
+            // Configurar validação em tempo real para os campos visíveis
+            try {
+                configurarValidacaoTempoReal();
+            } catch (err) {
+                console.error('Erro ao configurar validação em tempo real:', err);
+            }
         }
         
         // Função para finalizar o pedido
@@ -5091,11 +5109,9 @@ function filtrarPorCategoria(categoria) {
                 }
             }
             
-            // Validar nome do cliente (obrigatório)
-            if (!nomeCliente) {
-                alert('Por favor, informe seu nome para continuar.');
-                document.getElementById('nome-cliente').focus();
-                return;
+            // Validar todos os campos do formulário
+            if (!validarFormularioCompleto()) {
+                return; // Para a execução se houver erros de validação
             }
             
             // Obter itens do carrinho
@@ -6558,12 +6574,9 @@ function setupDesktopScrollNavigation() {
              * - Limpa o carrinho após o envio bem-sucedido
              */
             validarEEnviarPedido: function() {
-                // Validar campos obrigatórios
-                const nome = document.getElementById('cliente-nome');
-                if (!nome.value.trim()) {
-                    alert('Por favor, informe seu nome.');
-                    nome.focus();
-                    return;
+                // Validar todos os campos do formulário
+                if (!validarFormularioCompleto()) {
+                    return; // Para a execução se houver erros de validação
                 }
                 
                 // Verificar método de envio selecionado
@@ -6573,27 +6586,6 @@ function setupDesktopScrollNavigation() {
                     const metodoSelecionado = document.querySelector('input[name="metodo-envio"]:checked');
                     if (metodoSelecionado) {
                         metodoEnvio = metodoSelecionado.value;
-                        
-                        // Validações específicas por método
-                        // Padronizando o uso de 'local' em vez de 'consumo' para consistência
-                        if (metodoEnvio === 'local') {
-                            const mesaComandaAtivado = dadosGlobais.config['Step-3-mesa-comanda'] === 'Sim';
-                            if (mesaComandaAtivado) {
-                                const mesa = document.getElementById('cliente-mesa');
-                                if (!mesa || !mesa.value.trim()) {
-                                    alert('Por favor, informe o número da mesa/comanda.');
-                                    mesa.focus();
-                                    return;
-                                }
-                            }
-                        } else if (metodoEnvio === 'delivery') {
-                            const endereco = document.getElementById('cliente-endereco');
-                            if (!endereco || !endereco.value.trim()) {
-                                alert('Por favor, informe seu endereço completo.');
-                                endereco.focus();
-                                return;
-                            }
-                        }
                     }
                 }
                 
