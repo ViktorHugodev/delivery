@@ -102,20 +102,22 @@ function validarFormularioCompleto() {
     let primeiroErro = null;
     
     // Verificar qual opção de entrega está selecionada
-    // Isso garante que estamos usando o valor mais atualizado
+    // Detectar o método de entrega atual (caso tenha mudado desde a última validação)
     let metodoEntrega = '';
     const exibirStep2 = window.dadosGlobais && window.dadosGlobais.config && window.dadosGlobais.config['Step-2-checkout'] === 'Sim';
-    
     if (exibirStep2) {
         const metodoSelecionado = document.querySelector('input[name="metodo-envio"]:checked');
         if (metodoSelecionado) {
             metodoEntrega = metodoSelecionado.value;
+            // Atualizar variável global para garantir sincronização
+            window.opcaoEntregaSelecionada = metodoEntrega;
             console.log('Método de entrega detectado na validação:', metodoEntrega);
         }
     }
     
     // Usar o valor detectado ou manter o valor global se não for possível detectar
-    const opcaoEntrega = metodoEntrega || window.opcaoEntregaSelecionada;
+    // Se ainda for undefined, assumir 'delivery' como padrão para garantir validação
+    const opcaoEntrega = metodoEntrega || window.opcaoEntregaSelecionada || 'delivery';
     console.log('Opção de entrega para validação:', opcaoEntrega);
 
     // Validar nome do cliente (sempre obrigatório)

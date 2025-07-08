@@ -5263,9 +5263,14 @@ function filtrarPorCategoria(categoria) {
                 const metodoSelecionado = document.querySelector('input[name="metodo-envio"]:checked');
                 if (metodoSelecionado) {
                     metodoEnvio = metodoSelecionado.value;
-                    console.log('Método de envio selecionado:', metodoEnvio);
+                    // Atualizar variável global para garantir que esteja sincronizada
+                    window.opcaoEntregaSelecionada = metodoEnvio;
+                    console.log('Método de envio selecionado e sincronizado:', metodoEnvio);
                 } else {
                     console.warn('Nenhum método de envio selecionado');
+                    // Usar o valor padrão se nenhum método estiver selecionado
+                    metodoEnvio = window.opcaoEntregaSelecionada || 'delivery';
+                    console.log('Usando método de envio padrão:', metodoEnvio);
                 }
             }
 
@@ -5278,7 +5283,8 @@ function filtrarPorCategoria(categoria) {
 
             // Preparar dados do pedido
             const agora = new Date();
-            const nomeCliente = nome.value.trim();
+            const nomeInput = document.getElementById('nome-cliente');
+            const nomeCliente = nomeInput ? nomeInput.value.trim() : '';
             
             // Obter dados específicos conforme opção selecionada
             let mesaComanda = '';
