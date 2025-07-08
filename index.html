@@ -1173,10 +1173,10 @@
                         
                         <!-- Botão para enviar pedido (visível apenas no step 3) -->
                         <button 
-                            type="button" 
+                            type="submit" 
                             id="botao-enviar" 
                             class="px-4 py-2 text-sm font-medium text-white bg-[#25D366] border border-transparent rounded-md shadow-sm hover:bg-[#22c55e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#25D366] hidden flex items-center gap-2"
-                            onclick="validarEEnviarPedido()"
+                            
                         >
                             Enviar Pedido
                             <!-- Ícone do WhatsApp -->
@@ -1243,7 +1243,7 @@
                 <!-- Step 3: Informações do cliente baseadas na escolha anterior -->
                 <div id="step-3" class="step hidden p-4">
                     <h4 class="font-bold text-lg mb-4">Complete suas informações</h4>
-                    <form id="form-cliente" class="space-y-4">
+                    <form id="form-cliente" class="space-y-4" onsubmit="validarEEnviarPedido()">
                         <!-- Campos dinâmicos baseados na opção selecionada -->
                         <div id="campos-local" class="campos-opcao hidden">
                             <!-- Campo Mesa/Comanda - exibido apenas se configurado como Sim na planilha -->
