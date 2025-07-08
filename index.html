@@ -5242,13 +5242,18 @@ function filtrarPorCategoria(categoria) {
         }
         
         // Função para validação e envio do pedido via webhook (substitui a função do objeto Carrinho)
-        async function validarEEnviarPedido() {
-            // Validar campos obrigatórios
-            const nome = document.getElementById('nome-cliente');
-            if (!nome.value.trim()) {
-                alert('Por favor, informe seu nome.');
-                nome.focus();
-                return;
+        async function validarEEnviarPedido(event) {
+            // Prevenir comportamento padrão do evento se for um evento de submit
+            if (event && event.preventDefault) {
+                event.preventDefault();
+            }
+            
+            console.log('Iniciando validação e envio do pedido');
+            
+            // Usar a função de validação completa implementada em validacao.js
+            if (!validarFormularioCompleto()) {
+                console.log('Validação falhou, interrompendo envio');
+                return false;
             }
             
             // Verificar método de envio selecionado
@@ -5258,26 +5263,9 @@ function filtrarPorCategoria(categoria) {
                 const metodoSelecionado = document.querySelector('input[name="metodo-envio"]:checked');
                 if (metodoSelecionado) {
                     metodoEnvio = metodoSelecionado.value;
-                    
-                    // Validações específicas por método
-                    if (metodoEnvio === 'local') {
-                        const mesaComandaAtivado = dadosGlobais.config['Step-3-mesa-comanda'] === 'Sim';
-                        if (mesaComandaAtivado) {
-                            const mesa = document.getElementById('cliente-mesa');
-                            if (!mesa || !mesa.value.trim()) {
-                                alert('Por favor, informe o número da mesa/comanda.');
-                                mesa.focus();
-                                return;
-                            }
-                        }
-                    } else if (metodoEnvio === 'delivery') {
-                        const endereco = document.getElementById('cliente-endereco');
-                        if (!endereco || !endereco.value.trim()) {
-                            alert('Por favor, informe seu endereço completo.');
-                            endereco.focus();
-                            return;
-                        }
-                    }
+                    console.log('Método de envio selecionado:', metodoEnvio);
+                } else {
+                    console.warn('Nenhum método de envio selecionado');
                 }
             }
 
@@ -5297,11 +5285,25 @@ function filtrarPorCategoria(categoria) {
             let enderecoEntrega = '';
             
             if (metodoEnvio === 'local') {
-                const mesa = document.getElementById('cliente-mesa');
+                const mesa = document.getElementById('mesa-comanda');
                 if (mesa) mesaComanda = mesa.value.trim();
+                console.log('Mesa/Comanda:', mesaComanda);
             } else if (metodoEnvio === 'delivery') {
-                const endereco = document.getElementById('cliente-endereco');
-                if (endereco) enderecoEntrega = endereco.value.trim();
+                // Construir o endereço completo a partir dos campos individuais
+                const cep = document.getElementById('cep')?.value.trim() || '';
+                const endereco = document.getElementById('endereco')?.value.trim() || '';
+                const numero = document.getElementById('numero')?.value.trim() || '';
+                const complemento = document.getElementById('complemento')?.value.trim() || '';
+                const bairro = document.getElementById('bairro')?.value.trim() || '';
+                const cidade = document.getElementById('cidade')?.value.trim() || '';
+                const estado = document.getElementById('estado')?.value.trim() || '';
+                
+                // Montar o endereço completo formatado
+                enderecoEntrega = `${endereco}, ${numero}`;
+                if (complemento) enderecoEntrega += `, ${complemento}`;
+                enderecoEntrega += ` - ${bairro}, ${cidade}/${estado} - CEP: ${cep}`;
+                
+                console.log('Endereço completo:', enderecoEntrega);
             }
 
             // Obter forma de pagamento se aplicável
@@ -5309,9 +5311,24 @@ function filtrarPorCategoria(categoria) {
             let precisaTroco = null;
             let valorTroco = null;
 
-            const formaPagamentoSelect = document.getElementById('cliente-pagamento');
+            const formaPagamentoSelect = document.getElementById('forma-pagamento');
             if (formaPagamentoSelect && formaPagamentoSelect.value) {
                 formaPagamento = formaPagamentoSelect.options[formaPagamentoSelect.selectedIndex].text;
+                console.log('Forma de pagamento selecionada:', formaPagamento);
+                
+                // Verificar se precisa de troco
+                if (formaPagamento.toLowerCase().includes('dinheiro')) {
+                    const radioTrocoSim = document.querySelector('input[name="precisa-troco"][value="sim"]');
+                    precisaTroco = radioTrocoSim && radioTrocoSim.checked;
+                    
+                    if (precisaTroco) {
+                        const valorTrocoInput = document.getElementById('valor-troco');
+                        if (valorTrocoInput && valorTrocoInput.value.trim()) {
+                            valorTroco = valorTrocoInput.value.trim();
+                            console.log('Valor do troco:', valorTroco);
+                        }
+                    }
+                }
             }
 
             // Obter observações gerais
@@ -5368,6 +5385,21 @@ function filtrarPorCategoria(categoria) {
                     endereco: dadosGlobais.config['Endereço Completo'] || ''
                 }
             };
+            
+            // Se for delivery, adicionar os campos de endereço detalhados
+            if (metodoEnvio === 'delivery') {
+                dadosPedido.cliente.endereco = {
+                    cep: document.getElementById('cep')?.value.trim() || '',
+                    logradouro: document.getElementById('endereco')?.value.trim() || '',
+                    numero: document.getElementById('numero')?.value.trim() || '',
+                    complemento: document.getElementById('complemento')?.value.trim() || '',
+                    bairro: document.getElementById('bairro')?.value.trim() || '',
+                    cidade: document.getElementById('cidade')?.value.trim() || '',
+                    estado: document.getElementById('estado')?.value.trim() || ''
+                };
+            }
+            
+            console.log('Payload completo do pedido:', dadosPedido);
 
             // Mostrar loading no botão
             const botaoEnviar = document.getElementById('botao-enviar');
