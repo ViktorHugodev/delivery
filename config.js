@@ -39,7 +39,7 @@
 const CONFIG_COMPARTILHAMENTO = {
   // Imagem para compartilhamento (og:image e twitter:image)
   // Coloque aqui a URL completa da sua imagem de compartilhamento
-  imagemCompartilhamento: ''
+  imagemCompartilhamento: 'https://avatars.githubusercontent.com/u/85125378?v=4'
 
   // Outras configurações de compartilhamento podem ser adicionadas aqui no futuro
 }
