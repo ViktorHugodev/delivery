@@ -58,39 +58,39 @@ const CONFIG_PLANILHAS = {
 
 // Configuração de Fontes - Estilo Elegante
 const CONFIG_FONTES = {
-  // Fontes principais
-  fontePrincipal: 'Lato',           // Fonte para textos gerais - humanista e muito legível
-  fonteTitulos: 'Playfair Display', // Fonte para títulos - elegante e sofisticada
-  fontePrecos: 'Source Code Pro',   // Fonte para preços - monospace profissional
+  // Fontes principais (mais compatíveis)
+  fontePrincipal: 'Open Sans',      // Muito estável e legível
+  fonteTitulos: 'Montserrat',       // Geométrica, carrega rápido
+  fontePrecos: 'Roboto Mono',       // Monospace do Google, muito estável
   
-  // Pesos das fontes
-  pesoPadrao: '400',                // Peso normal para textos
-  pesoTitulos: '700',               // Peso bold para títulos (elegante)
-  pesoPrecos: '600',                // Peso semi-bold para preços
+  // Pesos das fontes (reduzidos para carregamento mais rápido)
+  pesoPadrao: '400',                
+  pesoTitulos: '600',               // Reduzido de 700 para 600
+  pesoPrecos: '500',                // Reduzido de 600 para 500
   
-  // Tamanhos base (em rem)
-  tamanhoTexto: '1rem',             // Texto normal
-  tamanhoTitulo: '1.3rem',          // Títulos (maior para destaque)
-  tamanhoPreco: '1.15rem',          // Preços (levemente maior)
+  // Tamanhos base
+  tamanhoTexto: '1rem',             
+  tamanhoTitulo: '1.25rem',         // Reduzido para evitar problemas
+  tamanhoPreco: '1.1rem',           
   
-  // Espaçamento entre letras (elegância)
-  espacamentoTitulos: '0.025em',    // Letter-spacing sutil nos títulos
-  espacamentoPrecos: '0.01em',      // Letter-spacing leve nos preços
+  // Espaçamento (reduzido)
+  espacamentoTitulos: '0.01em',     // Reduzido de 0.025em
+  espacamentoPrecos: '0',           // Zero para evitar problemas
   
-  // Configurações avançadas para elegância
-  alturaLinha: '1.6',               // Line-height para melhor legibilidade
-  alturaLinhaTitulos: '1.3',        // Line-height compacta para títulos
+  // Configurações simplificadas
+  alturaLinha: '1.5',               
+  alturaLinhaTitulos: '1.3',        
   
-  // Configurações responsivas
-  fatorMobile: 0.95,                // Fator de redução para mobile
-  fatorTituloMobile: 1.1,           // Fator de aumento dos títulos no mobile
+  // Responsividade
+  fatorMobile: 0.95,                
+  fatorTituloMobile: 1.05,          // Reduzido de 1.1
   
-  // Pesos adicionais carregados do Google Fonts
-  pesosCarregados: [300, 400, 500, 600, 700, 800, 900],
+  // Pesos simplificados (menos requisições)
+  pesosCarregados: [400, 500, 600, 700], // Reduzido significativamente
   
-  // Configuração de carregamento
-  displaySwap: true,                // Font-display: swap para melhor performance
-  preconnect: true                  // Usar preconnect para Google Fonts
+  // Configuração otimizada
+  displaySwap: true,                
+  preconnect: true                  
 }
 
 // Configurações avançadas de tipografia (opcional)
