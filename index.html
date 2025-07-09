@@ -166,11 +166,80 @@
         }
 
         .animate-fade-in-out {
-            animation: fadeInOut 2.5s ease-in-out;
+            animation: fadeInOut 3s ease-in-out;
         }
 
         .animate-fade-out {
-            animation: fadeOut 0.5s ease-in-out forwards;
+            animation: fadeOut 0.5s ease-out forwards;
+        }
+
+        /* Sistema de Toasts Elegantes */
+        .toast-notification {
+            min-width: 300px;
+            word-wrap: break-word;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .animate-toast-in {
+            transform: translateX(0) !important;
+            opacity: 1 !important;
+        }
+
+        .animate-toast-out {
+            transform: translateX(100%) !important;
+            opacity: 0 !important;
+        }
+
+        /* Animação da barra de progresso */
+        @keyframes toastProgress {
+            from {
+                width: 100%;
+            }
+            to {
+                width: 0%;
+            }
+        }
+
+        /* Responsividade para mobile */
+        @media (max-width: 640px) {
+            #toast-container {
+                top: 16px !important;
+                right: 16px !important;
+                left: 16px !important;
+            }
+            
+            .toast-notification {
+                min-width: auto;
+                max-width: none;
+            }
+        }
+
+        /* Hover effects para toasts */
+        .toast-notification:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Estilos específicos para cada tipo de toast */
+        .toast-success {
+            background: linear-gradient(135deg, #f0f9ff 0%, #ecfdf5 100%);
+            border-left: 4px solid #10b981;
+        }
+
+        .toast-error {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            border-left: 4px solid #ef4444;
+        }
+
+        .toast-warning {
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            border-left: 4px solid #f59e0b;
+        }
+
+        .toast-info {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-left: 4px solid #3b82f6;
         }
 
         /* Animação para o contador do carrinho */
@@ -2675,7 +2744,7 @@ Variações: ${variacoesTexto.join(', ')}`;
 
             } catch (error) {
                 console.error('Erro ao adicionar item com variação ao carrinho:', error);
-                alert('Ocorreu um erro ao adicionar o item ao carrinho. Por favor, tente novamente.');
+                showError('Ocorreu um erro ao adicionar o item ao carrinho. Por favor, tente novamente.');
             }
         }
 
@@ -3007,6 +3076,10 @@ Variações: ${variacoesTexto.join(', ')}`;
 
         // Event listeners
         document.addEventListener('DOMContentLoaded', function () {
+            // Inicializar sistema de toasts
+            ToastSystem.init();
+            console.log('Sistema de toasts carregado');
+
             // Aplicar configurações de compartilhamento do config.js
             aplicarConfiguracoesCompartilhamento();
 
@@ -4016,6 +4089,190 @@ Variações: ${variacoesTexto.join(', ')}`;
         }
 
         /**
+         * Sistema Universal de Toasts Elegantes
+         * Substitui alerts por notificações elegantes
+         */
+        const ToastSystem = {
+            container: null,
+            toasts: [],
+            
+            // Inicializar o sistema
+            init() {
+                if (this.container) return;
+                
+                // Criar container de toasts
+                this.container = document.createElement('div');
+                this.container.id = 'toast-container';
+                this.container.className = 'fixed top-4 right-4 z-[9999] space-y-2';
+                this.container.style.pointerEvents = 'none';
+                document.body.appendChild(this.container);
+                
+                console.log('Sistema de toasts inicializado');
+            },
+            
+            // Mostrar toast
+            show(message, type = 'info', duration = 4000) {
+                this.init();
+                
+                const toast = this.createToast(message, type, duration);
+                this.container.appendChild(toast);
+                this.toasts.push(toast);
+                
+                // Animar entrada
+                setTimeout(() => {
+                    toast.classList.add('animate-toast-in');
+                }, 10);
+                
+                // Auto-remover
+                if (duration > 0) {
+                    setTimeout(() => {
+                        this.remove(toast);
+                    }, duration);
+                }
+                
+                return toast;
+            },
+            
+            // Criar elemento toast
+            createToast(message, type, duration) {
+                const toast = document.createElement('div');
+                const config = this.getConfig(type);
+                
+                toast.className = `toast-notification toast-${type} ${config.textClass} p-4 rounded-lg shadow-lg max-w-sm transform translate-x-full opacity-0 transition-all duration-300 ease-out`;
+                toast.style.pointerEvents = 'auto';
+                
+                toast.innerHTML = `
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mr-3">
+                            ${config.icon}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium leading-tight">${message}</p>
+                        </div>
+                        <button type="button" class="ml-3 flex-shrink-0 text-gray-400 hover:text-gray-600 focus:outline-none" onclick="ToastSystem.remove(this.closest('.toast-notification'))">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    ${duration > 0 ? `
+                        <div class="mt-2 bg-white bg-opacity-20 rounded-full h-1 overflow-hidden">
+                            <div class="toast-progress h-full ${config.progressClass} rounded-full" style="animation: toastProgress ${duration}ms linear"></div>
+                        </div>
+                    ` : ''}
+                `;
+                
+                return toast;
+            },
+            
+            // Configurações por tipo
+            getConfig(type) {
+                const configs = {
+                    success: {
+                        textClass: 'text-green-800',
+                        progressClass: 'bg-green-400',
+                        icon: `<svg class="h-5 w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                               </svg>`
+                    },
+                    error: {
+                        textClass: 'text-red-800',
+                        progressClass: 'bg-red-400',
+                        icon: `<svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                               </svg>`
+                    },
+                    warning: {
+                        textClass: 'text-yellow-800',
+                        progressClass: 'bg-yellow-400',
+                        icon: `<svg class="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                               </svg>`
+                    },
+                    info: {
+                        textClass: 'text-blue-800',
+                        progressClass: 'bg-blue-400',
+                        icon: `<svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                               </svg>`
+                    }
+                };
+                
+                return configs[type] || configs.info;
+            },
+            
+            // Remover toast
+            remove(toast) {
+                if (!toast || !toast.parentNode) return;
+                
+                toast.classList.add('animate-toast-out');
+                
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                    
+                    const index = this.toasts.indexOf(toast);
+                    if (index > -1) {
+                        this.toasts.splice(index, 1);
+                    }
+                }, 300);
+            },
+            
+            // Limpar todos os toasts
+            clear() {
+                this.toasts.forEach(toast => this.remove(toast));
+            },
+            
+            // Métodos de conveniência
+            success(message, duration = 4000) {
+                return this.show(message, 'success', duration);
+            },
+            
+            error(message, duration = 6000) {
+                return this.show(message, 'error', duration);
+            },
+            
+            warning(message, duration = 5000) {
+                return this.show(message, 'warning', duration);
+            },
+            
+            info(message, duration = 4000) {
+                return this.show(message, 'info', duration);
+            }
+        };
+
+        // Tornar ToastSystem global
+        window.ToastSystem = ToastSystem;
+
+        // Funções de conveniência globais
+        window.showToast = (message, type, duration) => ToastSystem.show(message, type, duration);
+        window.showSuccess = (message, duration) => ToastSystem.success(message, duration);
+        window.showError = (message, duration) => ToastSystem.error(message, duration);
+        window.showWarning = (message, duration) => ToastSystem.warning(message, duration);
+        window.showInfo = (message, duration) => ToastSystem.info(message, duration);
+
+        /**
+         * Função para confirmações elegantes (substitui confirm() quando necessário)
+         * @param {string} message - Mensagem de confirmação
+         * @param {function} onConfirm - Callback para confirmação
+         * @param {function} onCancel - Callback para cancelamento
+         * @returns {boolean} - Resultado da confirmação
+         */
+        function showConfirm(message, onConfirm, onCancel) {
+            const confirmed = confirm(message);
+            if (confirmed && onConfirm) {
+                onConfirm();
+            } else if (!confirmed && onCancel) {
+                onCancel();
+            }
+            return confirmed;
+        }
+
+        // Tornar showConfirm global
+        window.showConfirm = showConfirm;
+
+        /**
          * Função para calcular totais do carrinho
          */
         function calcularTotaisCarrinho(carrinho) {
@@ -4399,21 +4656,12 @@ Variações: ${variacoesTexto.join(', ')}`;
                     console.log('Total de itens atualizado para:', totalItens, 'após remover', quantidadeRemovida, 'unidades');
                 }
 
-                // Exibir mensagem de feedback
-                const mensagem = document.createElement('div');
-                mensagem.className = 'fixed bottom-4 right-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg z-50 animate-fade-in-out';
-                mensagem.innerHTML = `<p><strong>${nomeItem}</strong> removido do carrinho</p>`;
-                document.body.appendChild(mensagem);
-
-                // Remover mensagem após 2 segundos
-                setTimeout(() => {
-                    mensagem.classList.add('animate-fade-out');
-                    setTimeout(() => mensagem.remove(), 500);
-                }, 2000);
+                // Exibir toast de feedback
+                showInfo(`🗑️ ${nomeItem} removido do carrinho`);
 
             } catch (error) {
                 console.error('Erro ao remover item do carrinho:', error);
-                alert('Ocorreu um erro ao remover o item do carrinho. Por favor, tente novamente.');
+                showError('Ocorreu um erro ao remover o item do carrinho. Por favor, tente novamente.');
             }
         }
 
@@ -4470,19 +4718,12 @@ Variações: ${variacoesTexto.join(', ')}`;
                     renderizarItensCarrinho();
                 }, 100);
 
-                // Feedback visual temporário
-                const mensagem = document.createElement('div');
-                mensagem.className = 'fixed bottom-4 right-4 bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 rounded shadow-lg z-50 animate-fade-in-out';
-                mensagem.innerHTML = `<p>Quantidade de <strong>${carrinho[itemIndex].titulo}</strong> atualizada para ${carrinho[itemIndex].quantidade}</p>`;
-                document.body.appendChild(mensagem);
-                setTimeout(() => {
-                    mensagem.classList.add('animate-fade-out');
-                    setTimeout(() => mensagem.remove(), 500);
-                }, 2000);
+                // Feedback visual com toast
+                showInfo(`📋 Quantidade de ${carrinho[itemIndex].titulo} atualizada para ${carrinho[itemIndex].quantidade}`);
 
             } catch (error) {
                 console.error('Erro ao alterar quantidade do item:', error);
-                alert('Ocorreu um erro ao alterar a quantidade. Por favor, tente novamente.');
+                showError('Ocorreu um erro ao alterar a quantidade. Por favor, tente novamente.');
             }
         }
 
@@ -4556,21 +4797,12 @@ Variações: ${variacoesTexto.join(', ')}`;
                     renderizarItensCarrinho();
                 }, 100);
 
-                // Exibir mensagem de feedback
-                const mensagem = document.createElement('div');
-                mensagem.className = 'fixed bottom-4 right-4 bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 rounded shadow-lg z-50 animate-fade-in-out';
-                mensagem.innerHTML = `<p>Quantidade de <strong>${carrinho[itemIndex].titulo}</strong> atualizada para ${quantidade}</p>`;
-                document.body.appendChild(mensagem);
-
-                // Remover mensagem após 2 segundos
-                setTimeout(() => {
-                    mensagem.classList.add('animate-fade-out');
-                    setTimeout(() => mensagem.remove(), 500);
-                }, 2000);
+                // Exibir toast de feedback
+                showInfo(`📋 Quantidade de ${carrinho[itemIndex].titulo} atualizada para ${quantidade}`);
 
             } catch (error) {
                 console.error('Erro ao atualizar quantidade do item:', error);
-                alert('Ocorreu um erro ao atualizar a quantidade. Por favor, tente novamente.');
+                showError('Ocorreu um erro ao atualizar a quantidade. Por favor, tente novamente.');
             }
         }
 
@@ -4660,17 +4892,8 @@ Variações: ${variacoesTexto.join(', ')}`;
                         botaoCarrinho.classList.remove('hidden');
                     }
 
-                    // Exibir mensagem de feedback
-                    const mensagem = document.createElement('div');
-                    mensagem.className = 'fixed top-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg z-50 animate-fade-in-out';
-                    mensagem.innerHTML = `<p class="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><strong>Carrinho limpo com sucesso!</strong></p>`;
-                    document.body.appendChild(mensagem);
-
-                    // Remover mensagem após 2 segundos
-                    setTimeout(() => {
-                        mensagem.classList.add('animate-fade-out');
-                        setTimeout(() => mensagem.remove(), 500);
-                    }, 2000);
+                    // Exibir toast de feedback
+                    showSuccess('🗑️ Carrinho limpo com sucesso!');
 
                     // Voltar para o step 1
                     mostrarStep(1);
@@ -4682,7 +4905,7 @@ Variações: ${variacoesTexto.join(', ')}`;
                     console.log('Carrinho limpo com sucesso');
                 } catch (error) {
                     console.error('Erro ao limpar o carrinho:', error);
-                    alert('Ocorreu um erro ao limpar o carrinho. Por favor, tente novamente.');
+                    showError('Ocorreu um erro ao limpar o carrinho. Por favor, tente novamente.');
                 }
             }
         }
@@ -4823,13 +5046,13 @@ Variações: ${variacoesTexto.join(', ')}`;
             // Verificar se há itens no carrinho
             const carrinho = JSON.parse(localStorage.getItem('carrinho') || '[]');
             if (carrinho.length === 0) {
-                alert('Adicione itens ao carrinho para continuar.');
+                showWarning('Adicione itens ao carrinho para continuar.');
                 return;
             }
 
             // Validações específicas para o step 2
             if (stepAtual === 2 && !opcaoEntregaSelecionada) {
-                alert('Selecione uma opção de entrega para continuar.');
+                showWarning('Selecione uma opção de entrega para continuar.');
                 return;
             }
 
@@ -5423,7 +5646,7 @@ Variações: ${variacoesTexto.join(', ')}`;
 
                 // Validar endereço para delivery
                 if (!enderecoEntrega) {
-                    alert('Por favor, informe o endereço de entrega para continuar.');
+                    showWarning('Por favor, informe o endereço de entrega para continuar.');
                     document.getElementById('endereco-entrega').focus();
                     return;
                 }
@@ -5437,7 +5660,7 @@ Variações: ${variacoesTexto.join(', ')}`;
             // Obter itens do carrinho
             const carrinho = JSON.parse(localStorage.getItem('carrinho') || '[]');
             if (carrinho.length === 0) {
-                alert('Seu carrinho está vazio. Adicione itens para fazer um pedido.');
+                showWarning('Seu carrinho está vazio. Adicione itens para fazer um pedido.');
                 mostrarStep(1);
                 return;
             }
@@ -5540,7 +5763,7 @@ Variações: ${variacoesTexto.join(', ')}`;
 
                 if (resultado.success) {
                     // Sucesso - mostrar mensagem e limpar carrinho
-                    alert('Pedido enviado com sucesso!');
+                    showSuccess('🎉 Pedido enviado com sucesso!');
 
                     // Limpar carrinho e fechar modal
                     localStorage.removeItem('carrinho');
@@ -5550,12 +5773,12 @@ Variações: ${variacoesTexto.join(', ')}`;
                     console.log('Pedido finalizado com sucesso!');
                 } else {
                     // Erro - mostrar mensagem de erro
-                    alert(`Erro ao enviar pedido: ${resultado.error}\n\nPor favor, tente novamente ou entre em contato conosco.`);
+                    showError(`Erro ao enviar pedido: ${resultado.error}. Por favor, tente novamente ou entre em contato conosco.`);
                     console.error('Erro ao enviar pedido:', resultado.error);
                 }
             } catch (error) {
                 console.error('Erro ao processar pedido:', error);
-                alert('Ocorreu um erro ao processar seu pedido. Por favor, tente novamente.');
+                showError('Ocorreu um erro ao processar seu pedido. Por favor, tente novamente.');
             } finally {
                 // Resetar a flag após o processamento (com delay para evitar cliques rápidos)
                 setTimeout(() => {
@@ -5767,7 +5990,7 @@ Variações: ${variacoesTexto.join(', ')}`;
         // Obter itens do carrinho
         const carrinho = JSON.parse(localStorage.getItem('carrinho') || '[]');
         if (carrinho.length === 0) {
-            alert('Seu carrinho está vazio. Adicione itens para fazer um pedido.');
+            showWarning('Seu carrinho está vazio. Adicione itens para fazer um pedido.');
             return;
         }
 
@@ -5782,7 +6005,7 @@ Variações: ${variacoesTexto.join(', ')}`;
 
         // Validar telefone
         if (!telefoneCliente || !validarTelefone(telefoneCliente)) {
-            alert('Por favor, informe um telefone válido.');
+            showError('Por favor, informe um telefone válido.');
             if (telefoneInput) {
                 telefoneInput.focus();
                 telefoneInput.classList.add('border-red-500');
@@ -5933,7 +6156,7 @@ Variações: ${variacoesTexto.join(', ')}`;
 
         if (resultado.success) {
             // Sucesso
-            alert('Pedido enviado com sucesso! Obrigado pela preferência.');
+            showSuccess('🎉 Pedido enviado com sucesso! Obrigado pela preferência.');
 
             // Limpar o carrinho
             if (typeof Carrinho === 'object' && Carrinho.limpar) {
@@ -5965,7 +6188,7 @@ Variações: ${variacoesTexto.join(', ')}`;
         } else {
             // Erro
             console.error('Erro retornado do webhook:', resultado.error);
-            alert(`Erro ao enviar pedido: ${resultado.error}\n\nPor favor, tente novamente ou entre em contato conosco.`);
+            showError(`Erro ao enviar pedido: ${resultado.error}. Por favor, tente novamente ou entre em contato conosco.`);
         }
 
         // Restaurar botão
@@ -5974,7 +6197,7 @@ Variações: ${variacoesTexto.join(', ')}`;
 
     } catch (error) {
         console.error('Erro ao processar pedido:', error);
-        alert('Ocorreu um erro ao processar seu pedido. Por favor, tente novamente.');
+        showError('Ocorreu um erro ao processar seu pedido. Por favor, tente novamente.');
         
         // Restaurar botão em caso de erro
         if (botaoEnviar) {
@@ -6068,12 +6291,12 @@ Variações: ${variacoesTexto.join(', ')}`;
                     try {
                         const waUrl = `https://wa.me/${numero}?text=${mensagem}`;
                         console.log('Tentando método alternativo:', waUrl);
-                        alert('Usando método alternativo para abrir o WhatsApp.');
+                        showInfo('Usando método alternativo para abrir o WhatsApp.');
                         window.location.href = waUrl;
                         return true;
                     } catch (fallbackError) {
                         console.error('Falha no método alternativo:', fallbackError);
-                        alert('Não foi possível abrir o WhatsApp. Por favor, tente novamente mais tarde.');
+                        showError('Não foi possível abrir o WhatsApp. Por favor, tente novamente mais tarde.');
                         return false;
                     }
                 }
@@ -6345,7 +6568,7 @@ Variações: ${variacoesTexto.join(', ')}`;
                     
                 } catch (error) {
                     console.error('Erro ao adicionar item ao carrinho:', error);
-                    alert('Erro ao adicionar item ao carrinho. Tente novamente.');
+                    showError('Erro ao adicionar item ao carrinho. Tente novamente.');
                 }
             }
 
@@ -7469,7 +7692,7 @@ Variações: ${variacoesTexto.join(', ')}`;
                     // Número de WhatsApp do estabelecimento da planilha
                     const whatsappNumero = dadosGlobais.config['WhatsApp'];
                     if (!whatsappNumero) {
-                        alert('Número de WhatsApp não configurado na planilha.');
+                        showWarning('Número de WhatsApp não configurado na planilha.');
                         return;
                     }
 
