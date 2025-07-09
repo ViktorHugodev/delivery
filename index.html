@@ -1309,8 +1309,9 @@
                             </button>
 
                             <!-- Botão para enviar pedido (visível apenas no step 3) -->
-                            <button type="submit" id="botao-enviar"
-                                class="px-4 py-2 text-sm font-medium text-white bg-[#25D366] border border-transparent rounded-md shadow-sm hover:bg-[#22c55e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#25D366] hidden flex items-center gap-2">
+                            <button type="button" id="botao-enviar"
+                                class="px-4 py-2 text-sm font-medium text-white bg-[#25D366] border border-transparent rounded-md shadow-sm hover:bg-[#22c55e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#25D366] hidden flex items-center gap-2"
+                                onclick="handleEnviarPedido(event)">
                                 Enviar Pedido
                                 <!-- Ícone do WhatsApp -->
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor"
@@ -1385,8 +1386,7 @@
                 <!-- Step 3: Informações do cliente baseadas na escolha anterior -->
                 <div id="step-3" class="step hidden p-4">
                     <h4 class="font-bold text-lg mb-4">Complete suas informações</h4>
-                    <form id="form-cliente" class="space-y-4"
-                        onsubmit="event.preventDefault(); validarEEnviarPedido(); return false;">
+                    <form id="form-cliente" class="space-y-4">
                         <!-- Campos dinâmicos baseados na opção selecionada -->
                         <div id="campos-local" class="campos-opcao hidden">
                             <!-- Campo Mesa/Comanda - exibido apenas se configurado como Sim na planilha -->
@@ -5329,7 +5329,7 @@ Variações: ${variacoesTexto.join(', ')}`;
             } finally {
                 // Resetar a flag após o processamento (com delay para evitar cliques rápidos)
                 setTimeout(() => {
-                    enviandoPedido = false;
+                    window.enviandoPedido = false;
                     console.log('Flag de envio resetada, permitindo novos envios');
                 }, 2000);
 
@@ -5345,29 +5345,46 @@ Variações: ${variacoesTexto.join(', ')}`;
 
         // Função para validação e envio do pedido via webhook (substitui a função do objeto Carrinho)
         // Flag para evitar envios duplicados
-        let enviandoPedido = false;
+        // Flag global para controlar envio de pedidos
+        window.enviandoPedido = false;
 
         async function validarEEnviarPedido(event) {
-    // Prevenir comportamento padrão do evento se for um evento de submit
-    if (event && event.preventDefault) {
+    console.log('=== INICIANDO VALIDAÇÃO E ENVIO DO PEDIDO ===');
+    
+    // Prevenir comportamento padrão
+    if (event) {
         event.preventDefault();
+        event.stopPropagation();
+    }
+
+    // Verificação robusta contra duplo clique
+    const botaoEnviar = document.getElementById('botao-enviar');
+    if (botaoEnviar && botaoEnviar.disabled) {
+        console.log('Botão já está desabilitado, ignorando clique');
+        return;
     }
 
     // Evitar envios duplicados
-    if (enviandoPedido) {
+    if (typeof window.enviandoPedido !== 'undefined' && window.enviandoPedido) {
         console.log('Já existe um pedido em andamento, ignorando nova tentativa');
         return;
     }
 
+    // Desabilitar botão imediatamente para evitar duplo clique
+    if (botaoEnviar) {
+        botaoEnviar.disabled = true;
+        console.log('Botão desabilitado para evitar duplo clique');
+    }
+
     // Ativar flag para bloquear múltiplos envios
-    enviandoPedido = true;
+    window.enviandoPedido = true;
     console.log('Flag de envio ativada, bloqueando múltiplos envios');
 
     try {
         console.log('Iniciando validação e envio do pedido');
 
         // Usar a função de validação completa implementada em validacao.js
-        if (!validarFormularioCompleto()) {
+        if (typeof validarFormularioCompleto === 'function' && !validarFormularioCompleto()) {
             console.log('Validação falhou, interrompendo envio');
             return false;
         }
@@ -5537,16 +5554,18 @@ Variações: ${variacoesTexto.join(', ')}`;
             };
         }
 
-        console.log('Payload completo do pedido:', dadosPedido);
+        console.log('Payload completo do pedido preparado:', dadosPedido);
 
         // Mostrar loading no botão
-        const botaoEnviar = document.getElementById('botao-enviar');
         const textoOriginal = botaoEnviar.innerHTML;
         botaoEnviar.innerHTML = '<span>Enviando...</span>';
-        botaoEnviar.disabled = true;
 
+        console.log('=== ENVIANDO PARA WEBHOOK ===');
+        
         // Enviar pedido para webhook
         const resultado = await enviarPedidoWebhook(dadosPedido);
+
+        console.log('Resultado do webhook:', resultado);
 
         if (resultado.success) {
             // Sucesso
@@ -5578,11 +5597,11 @@ Variações: ${variacoesTexto.join(', ')}`;
                 mostrarStep(1);
             }
 
-            console.log('Pedido enviado com sucesso para o webhook N8N');
+            console.log('=== PEDIDO ENVIADO COM SUCESSO ===');
         } else {
             // Erro
+            console.error('Erro retornado do webhook:', resultado.error);
             alert(`Erro ao enviar pedido: ${resultado.error}\n\nPor favor, tente novamente ou entre em contato conosco.`);
-            console.error('Erro ao enviar pedido:', resultado.error);
         }
 
         // Restaurar botão
@@ -5594,19 +5613,47 @@ Variações: ${variacoesTexto.join(', ')}`;
         alert('Ocorreu um erro ao processar seu pedido. Por favor, tente novamente.');
         
         // Restaurar botão em caso de erro
-        const botaoEnviar = document.getElementById('botao-enviar');
         if (botaoEnviar) {
-            botaoEnviar.innerHTML = botaoEnviar.innerHTML.replace('<span>Enviando...</span>', 'Enviar Pedido');
+            botaoEnviar.innerHTML = 'Enviar Pedido <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" /></svg>';
             botaoEnviar.disabled = false;
         }
     } finally {
-        // Resetar a flag após o processamento (com delay para evitar cliques rápidos)
+        // Resetar a flag após o processamento
         setTimeout(() => {
-            enviandoPedido = false;
+            window.enviandoPedido = false;
             console.log('Flag de envio resetada, permitindo novos envios');
         }, 2000);
     }
 }
+
+        // Função handler específica para o botão de enviar - evita conflitos
+        function handleEnviarPedido(event) {
+            console.log('Handler do botão enviar acionado');
+            
+            // Prevenir comportamento padrão e propagação
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+            }
+            
+            // Verificar se já existe um envio em andamento
+            if (typeof window.enviandoPedido !== 'undefined' && window.enviandoPedido) {
+                console.log('Envio já em andamento, ignorando clique');
+                return;
+            }
+            
+            // Verificar se o botão está desabilitado
+            const botaoEnviar = document.getElementById('botao-enviar');
+            if (botaoEnviar && botaoEnviar.disabled) {
+                console.log('Botão desabilitado, ignorando clique');
+                return;
+            }
+            
+            // Chamar a função principal de validação e envio
+            console.log('Chamando validarEEnviarPedido...');
+            validarEEnviarPedido(event);
+        }
         
         // Função auxiliar para obter texto do tipo de entrega
 
@@ -6506,13 +6553,8 @@ Variações: ${variacoesTexto.join(', ')}`;
                         // Removido manipulador duplicado do botão voltar
                         // O botão já tem um onclick="voltarStep()" que cuida da navegação
 
-                        // Enviar pedido - não é necessário chamar validarEEnviarPedido aqui
-                        // pois o formulário já tem onsubmit="event.preventDefault(); validarEEnviarPedido(); return false;"
-                        if (event.target.closest('#botao-enviar')) {
-                            // Apenas prevenir comportamento padrão
-                            event.preventDefault();
-                            console.log('Clique no botão de enviar detectado - o formulário cuidará do envio');
-                        }
+                        // Event listener duplicado removido para evitar conflitos
+                        // O botão agora usa onclick="handleEnviarPedido(event)" diretamente
                     });
 
                     // Validação de inputs numéricos (somente números e quantidade mínima 1)
