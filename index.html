@@ -881,6 +881,82 @@
         .compartilhamento-feedback.ativo {
             opacity: 1;
         }
+
+        /* Estilos para o carrinho com preços */
+        .item-carrinho {
+            transition: all 0.2s ease;
+        }
+
+        .item-carrinho:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .quantidade-input {
+            -moz-appearance: textfield;
+            -webkit-appearance: textfield;
+            appearance: textfield;
+        }
+
+        .quantidade-input::-webkit-outer-spin-button,
+        .quantidade-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            appearance: none;
+            margin: 0;
+        }
+
+        /* Animação para destaque de preços */
+        .price-highlight-animation {
+            animation: priceHighlight 0.5s ease;
+        }
+
+        @keyframes priceHighlight {
+            0% { background-color: transparent; }
+            50% { background-color: rgba(34, 197, 94, 0.1); }
+            100% { background-color: transparent; }
+        }
+
+        /* Estilos para o resumo do carrinho */
+        #resumo-carrinho {
+            transition: all 0.3s ease;
+        }
+
+        #resumo-carrinho.hidden {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        /* Melhorias visuais para preços */
+        .text-primary-dynamic {
+            color: var(--primary-color, #0d9488);
+        }
+
+        /* Responsividade para preços */
+        @media (max-width: 640px) {
+            .item-carrinho {
+                padding: 12px;
+            }
+            
+            .item-carrinho .flex {
+                gap: 8px;
+            }
+            
+            .quantidade-input {
+                width: 48px;
+                font-size: 14px;
+            }
+        }
+
+        /* Estilos para botões de quantidade */
+        .quantidade-decremento:disabled,
+        .quantidade-incremento:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .quantidade-decremento:hover:not(:disabled),
+        .quantidade-incremento:hover:not(:disabled) {
+            background-color: var(--secondary-color, #0f766e);
+        }
     </style>
 </head>
 
@@ -3919,17 +3995,52 @@ Variações: ${variacoesTexto.join(', ')}`;
         // Variável para evitar chamadas recursivas
         let isRenderizandoCarrinho = false;
 
+        /**
+         * Função para formatar valor numérico em moeda brasileira
+         * Converte 45.50 para "R$ 45,50"
+         */
+        function formatarMoedaBR(valor) {
+            if (typeof valor !== 'number' || isNaN(valor)) {
+                return 'R$ 0,00';
+            }
+            
+            return `R$ ${valor.toFixed(2).replace('.', ',')}`;
+        }
+
+        /**
+         * Função para calcular totais do carrinho
+         */
+        function calcularTotaisCarrinho(carrinho) {
+            let valorTotal = 0;
+            let quantidadeTotal = 0;
+            
+            carrinho.forEach(item => {
+                const precoBase = parseFloat(item.precoBase) || 0;
+                const precoAdicional = parseFloat(item.precoAdicional) || 0;
+                const quantidade = parseInt(item.quantidade) || 1;
+                const precoTotalItem = (precoBase + precoAdicional) * quantidade;
+                
+                valorTotal += precoTotalItem;
+                quantidadeTotal += quantidade;
+            });
+            
+            return {
+                valorTotal: valorTotal,
+                quantidadeTotal: quantidadeTotal
+            };
+        }
+
         // Função para renderizar itens do carrinho no modal
         function renderizarItensCarrinho() {
             try {
-                // Evitar chamadas recursivas
                 if (isRenderizandoCarrinho) {
                     console.log('Renderização já em andamento, ignorando chamada');
                     return;
                 }
 
                 isRenderizandoCarrinho = true;
-                console.log('Renderizando itens do carrinho no modal');
+                console.log('=== RENDERIZANDO ITENS DO CARRINHO COM PREÇOS ===');
+                
                 const containerItens = document.getElementById('carrinho-itens');
 
                 if (!containerItens) {
@@ -3938,27 +4049,28 @@ Variações: ${variacoesTexto.join(', ')}`;
                     return;
                 }
 
-                // Obter carrinho do localStorage (sempre buscar do localStorage para garantir dados atualizados)
+                // Obter carrinho do localStorage
                 let carrinho = JSON.parse(localStorage.getItem('carrinho') || '[]');
-
-                // Atualizar variável global do carrinho para garantir sincronização
                 window.carrinho = carrinho;
 
                 // Limpar todo o conteúdo do container
                 containerItens.innerHTML = '';
 
-                // Verificar se o carrinho está vazio
+                // Calcular totais
+                const totais = calcularTotaisCarrinho(carrinho);
+                console.log('Totais calculados:', totais);
+
                 if (carrinho.length === 0) {
                     // Exibir mensagem de carrinho vazio
                     const carrinhoVazioHtml = `
-                    <div class="text-center text-gray-500 py-8" id="carrinho-vazio">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        <p class="text-lg">Seu carrinho está vazio</p>
-                        <p class="mt-2">Adicione itens do cardápio para continuar</p>
-                    </div>
-                `;
+                        <div class="text-center text-gray-500 py-8" id="carrinho-vazio">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <p class="text-lg">Seu carrinho está vazio</p>
+                            <p class="mt-2">Adicione itens do cardápio para continuar</p>
+                        </div>
+                    `;
                     containerItens.innerHTML = carrinhoVazioHtml;
 
                     // Desabilitar botão de continuar
@@ -3968,20 +4080,12 @@ Variações: ${variacoesTexto.join(', ')}`;
                         botaoContinuar.classList.add('opacity-50', 'cursor-not-allowed');
                     }
 
-                    // Esconder botão limpar carrinho no step 1
-                    const btnLimparCarrinho = document.getElementById('limpar-carrinho');
-                    if (btnLimparCarrinho) {
-                        btnLimparCarrinho.classList.add('hidden');
-                        btnLimparCarrinho.setAttribute('aria-hidden', 'true');
+                    // Ocultar resumo do carrinho
+                    const resumoCarrinho = document.getElementById('resumo-carrinho');
+                    if (resumoCarrinho) {
+                        resumoCarrinho.classList.add('hidden');
                     }
 
-                    // Atualizar botão limpar no rodapé
-                    const botaoLimpar = document.getElementById('botao-limpar');
-                    if (botaoLimpar) {
-                        botaoLimpar.disabled = true;
-                        botaoLimpar.classList.add('opacity-50', 'cursor-not-allowed');
-                        botaoLimpar.setAttribute('aria-disabled', 'true');
-                    }
                 } else {
                     // Habilitar botão de continuar
                     const botaoContinuar = document.getElementById('botao-continuar');
@@ -3990,139 +4094,140 @@ Variações: ${variacoesTexto.join(', ')}`;
                         botaoContinuar.classList.remove('opacity-50', 'cursor-not-allowed');
                     }
 
-                    // Mostrar botão limpar carrinho no step 1
-                    const btnLimparCarrinho = document.getElementById('limpar-carrinho');
-                    if (btnLimparCarrinho) {
-                        btnLimparCarrinho.classList.remove('hidden');
-                        btnLimparCarrinho.setAttribute('aria-hidden', 'false');
-                    }
-
-                    // Habilitar botão limpar no rodapé
-                    const botaoLimpar = document.getElementById('botao-limpar');
-                    if (botaoLimpar) {
-                        botaoLimpar.disabled = false;
-                        botaoLimpar.classList.remove('opacity-50', 'cursor-not-allowed');
-                        botaoLimpar.setAttribute('aria-disabled', 'false');
-                    }
-
                     // Renderizar cada item do carrinho
                     carrinho.forEach((item, index) => {
-                        // Usar a imagem armazenada no objeto do carrinho ou tentar encontrar no DOM
-                        let imagemSrc = item.imagem || '';
+                        // Calcular preços
+                        const precoBase = parseFloat(item.precoBase) || 0;
+                        const precoAdicional = parseFloat(item.precoAdicional) || 0;
+                        const precoUnitario = precoBase + precoAdicional;
+                        const quantidade = parseInt(item.quantidade) || 1;
+                        const precoTotalItem = precoUnitario * quantidade;
 
-                        // Se não tiver imagem armazenada, tenta buscar no DOM como fallback
-                        if (!imagemSrc) {
-                            try {
-                                // Usar o ID original do produto para buscar a imagem no DOM
-                                const idBusca = item.originalId || item.id;
-                                const cardItem = document.querySelector(`[data-item-id="${idBusca}"]`);
-                                if (cardItem) {
-                                    const card = cardItem.closest('.card');
-                                    if (card) {
-                                        const img = card.querySelector('img');
-                                        if (img) {
-                                            // Tentar obter a URL completa da imagem
-                                            if (img.currentSrc) {
-                                                imagemSrc = img.currentSrc;
-                                            } else if (img.src) {
-                                                imagemSrc = img.src;
-                                            } else {
-                                                imagemSrc = img.getAttribute('src') || '';
-                                            }
+                        // Formatação para exibição
+                        const precoUnitarioFormatado = formatarMoedaBR(precoUnitario);
+                        const precoTotalFormatado = formatarMoedaBR(precoTotalItem);
 
-                                            console.log('Imagem encontrada no DOM para o item:', idBusca, imagemSrc);
-                                        }
-                                    }
-                                }
-                            } catch (e) {
-                                console.error('Erro ao buscar imagem do item:', e);
-                            }
-                        }
+                        console.log(`Item ${index + 1}: ${item.titulo}`);
+                        console.log(`  Preço base: ${precoBase}`);
+                        console.log(`  Preço adicional: ${precoAdicional}`);
+                        console.log(`  Preço unitário: ${precoUnitario}`);
+                        console.log(`  Quantidade: ${quantidade}`);
+                        console.log(`  Preço total: ${precoTotalItem}`);
 
                         const itemHtml = `
-                        <div class="item-carrinho bg-white rounded-lg shadow-sm p-3 border border-gray-200 mb-3">
-                            <div class="flex items-start gap-3">
-                                <!-- Imagem do item ou placeholder -->
-                                <div class="item-imagem flex-shrink-0 w-[60px] h-[60px] rounded-md border border-gray-200 overflow-hidden">
-                                    ${imagemSrc ?
-                                `<img src="${imagemSrc}" alt="${item.titulo}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%23cccccc\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1\' d=\'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z\' /></svg>';">`
-                                : `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="#cccccc" class="w-full h-full p-2"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>`
-                            }
-                                </div>
-                                <div class="flex-1">
-                                    <div class="flex justify-between items-center mb-1">
-                                        <h4 class="font-medium text-gray-900">${item.titulo}</h4>
-                                        <button 
-                                            type="button" 
-                                            class="remover-item text-gray-400 hover:text-red-500 focus:outline-none"
-                                            data-item-id="${item.id}"
-                                            aria-label="Remover ${item.titulo} do carrinho"
-                                            onclick="removerItemDoCarrinho('${item.id}')"
-                                        >
-                                            <i class="fas fa-trash-alt" style="font-size: 18px; color: #f87171;"></i>
-                                        </button>
+                            <div class="item-carrinho bg-white rounded-lg shadow-sm p-4 border border-gray-200 mb-3">
+                                <div class="flex items-start gap-3">
+                                    <!-- Imagem do item ou placeholder -->
+                                    <div class="item-imagem flex-shrink-0 w-[60px] h-[60px] rounded-md border border-gray-200 overflow-hidden">
+                                        ${item.imagem ?
+                                            `<img src="${item.imagem}" alt="${item.titulo}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%23cccccc\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1\' d=\'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z\' /></svg>';">`
+                                            : `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="#cccccc" class="w-full h-full p-2"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>`
+                                        }
                                     </div>
-                                     <!-- Controles de quantidade com botões de incremento/decremento -->
-                                    <div class="flex items-center mb-2">
-                                        <div class="flex items-center" role="group" aria-label="Controle de quantidade para ${item.titulo}">
+                                    
+                                    <!-- Informações do item -->
+                                    <div class="flex-1 min-w-0">
+                                        <!-- Cabeçalho com nome e botão remover -->
+                                        <div class="flex justify-between items-start mb-2">
+                                            <h4 class="font-medium text-gray-900 text-sm leading-tight">${item.titulo}</h4>
                                             <button 
-                                                type="button"
-                                                class="quantidade-decremento flex items-center justify-center w-7 h-7 rounded-md bg-primary-dynamic text-white hover:bg-opacity-90 transition-all duration-200 focus:outline-none"
+                                                type="button" 
+                                                class="remover-item text-gray-400 hover:text-red-500 focus:outline-none ml-2 flex-shrink-0"
                                                 data-item-id="${item.id}"
-                                                aria-label="Diminuir quantidade"
-                                                onclick="alterarQuantidadeItem('${item.id}', -1); event.stopPropagation();"
+                                                aria-label="Remover ${item.titulo} do carrinho"
+                                                onclick="removerItemDoCarrinho('${item.id}')"
                                             >
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14" />
-                                                </svg>
-                                            </button>
-                                            <input 
-                                                type="number" 
-                                                min="1" 
-                                                max="99" 
-                                                value="${item.quantidade}" 
-                                                class="quantidade-input mx-2 w-10 h-8 text-center border-0 bg-transparent focus:outline-none focus:ring-0 font-medium text-gray-700" 
-                                                data-item-id="${item.id}" 
-                                                aria-label="Quantidade de ${item.titulo}"
-                                                onchange="atualizarQuantidadeInput('${item.id}', this.value); event.stopPropagation();"
-                                            >
-                                            <button 
-                                                type="button"
-                                                class="quantidade-incremento flex items-center justify-center w-7 h-7 rounded-md bg-primary-dynamic text-white hover:bg-opacity-90 transition-all duration-200 focus:outline-none"
-                                                data-item-id="${item.id}"
-                                                aria-label="Aumentar quantidade"
-                                                onclick="alterarQuantidadeItem('${item.id}', 1); event.stopPropagation();"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                 </svg>
                                             </button>
                                         </div>
+
+                                        <!-- Informações de preço -->
+                                        <div class="mb-3">
+                                            <div class="flex justify-between items-center text-sm">
+                                                <span class="text-gray-600">Preço unitário:</span>
+                                                <span class="font-medium text-gray-900">${precoUnitarioFormatado}</span>
+                                            </div>
+                                            ${precoAdicional > 0 ? `
+                                                <div class="flex justify-between items-center text-xs text-gray-500 mt-1">
+                                                    <span>Inclui variações:</span>
+                                                    <span>+${formatarMoedaBR(precoAdicional)}</span>
+                                                </div>
+                                            ` : ''}
+                                            <div class="flex justify-between items-center text-sm font-medium mt-1 pt-1 border-t border-gray-100">
+                                                <span class="text-gray-700">Total (${quantidade}x):</span>
+                                                <span class="text-primary-dynamic font-bold">${precoTotalFormatado}</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Controles de quantidade -->
+                                        <div class="flex items-center mb-2">
+                                            <span class="text-sm text-gray-600 mr-3">Quantidade:</span>
+                                            <div class="flex items-center" role="group" aria-label="Controle de quantidade para ${item.titulo}">
+                                                <button 
+                                                    type="button"
+                                                    class="quantidade-decremento flex items-center justify-center w-7 h-7 rounded-md bg-primary-dynamic text-white hover:bg-opacity-90 transition-all duration-200 focus:outline-none"
+                                                    data-item-id="${item.id}"
+                                                    aria-label="Diminuir quantidade"
+                                                    onclick="alterarQuantidadeItem('${item.id}', -1); event.stopPropagation();"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14" />
+                                                    </svg>
+                                                </button>
+                                                <input 
+                                                    type="number" 
+                                                    min="1" 
+                                                    max="99" 
+                                                    value="${quantidade}" 
+                                                    class="quantidade-input mx-2 w-12 h-8 text-center border border-gray-300 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-dynamic focus:border-primary-dynamic font-medium text-gray-700" 
+                                                    data-item-id="${item.id}" 
+                                                    aria-label="Quantidade de ${item.titulo}"
+                                                    onchange="atualizarQuantidadeInput('${item.id}', this.value); event.stopPropagation();"
+                                                >
+                                                <button 
+                                                    type="button"
+                                                    class="quantidade-incremento flex items-center justify-center w-7 h-7 rounded-md bg-primary-dynamic text-white hover:bg-opacity-90 transition-all duration-200 focus:outline-none"
+                                                    data-item-id="${item.id}"
+                                                    aria-label="Aumentar quantidade"
+                                                    onclick="alterarQuantidadeItem('${item.id}', 1); event.stopPropagation();"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Campo de observação (se habilitado) -->
+                                        ${dadosGlobais.config && dadosGlobais.config['Step-1-itens-obs'] === 'Sim' ? `
+                                            <div class="mt-2">
+                                                <label for="obs-${item.id}" class="block text-xs text-gray-600 mb-1">Observação:</label>
+                                                <textarea 
+                                                    id="obs-${item.id}" 
+                                                    class="w-full text-sm border border-gray-300 rounded-md p-2 focus:ring-primary-dynamic focus:border-primary-dynamic" 
+                                                    placeholder="Ex: Sem cebola, bem passado, etc."
+                                                    rows="2"
+                                                    onchange="salvarObservacaoItem('${item.id}', this.value)"
+                                                >${item.observacao || ''}</textarea>
+                                            </div>
+                                        ` : ''}
                                     </div>
-                                    ${dadosGlobais.config['Step-1-itens-obs'] === 'Sim' ? `
-                                    <div class="mt-1">
-                                        <label for="obs-${item.id}" class="block text-xs text-gray-600 mb-1">Observação:</label>
-                                        <textarea 
-                                            id="obs-${item.id}" 
-                                            class="w-full text-sm border border-gray-300 rounded-md p-2 focus:ring-primary-dynamic focus:border-primary-dynamic" 
-                                            placeholder="Ex: Sem cebola, bem passado, etc."
-                                            rows="1"
-                                            onchange="salvarObservacaoItem('${item.id}', this.value)"
-                                        >${item.observacao || ''}</textarea>
-                                    </div>
-                                    ` : ''}
                                 </div>
                             </div>
-                        </div>
-                    `;
+                        `;
 
                         // Adicionar ao container
                         containerItens.insertAdjacentHTML('beforeend', itemHtml);
                     });
+
+                    // Exibir resumo do carrinho
+                    exibirResumoCarrinho(totais);
                 }
 
-                // Liberar a variável de controle ao final da execução
                 isRenderizandoCarrinho = false;
+                console.log('=== RENDERIZAÇÃO DO CARRINHO CONCLUÍDA ===');
             } catch (error) {
                 console.error('Erro ao renderizar itens do carrinho:', error);
 
@@ -4144,6 +4249,64 @@ Variações: ${variacoesTexto.join(', ')}`;
 
                 // Garantir liberação da variável mesmo em caso de erro
                 isRenderizandoCarrinho = false;
+            }
+        }
+
+        /**
+         * Função para exibir o resumo do carrinho com valor total
+         */
+        function exibirResumoCarrinho(totais) {
+            console.log('Exibindo resumo do carrinho:', totais);
+            
+            // Buscar ou criar container do resumo
+            let resumoContainer = document.getElementById('resumo-carrinho');
+            
+            if (!resumoContainer) {
+                // Criar container se não existir
+                resumoContainer = document.createElement('div');
+                resumoContainer.id = 'resumo-carrinho';
+                resumoContainer.className = 'mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4';
+                
+                // Inserir após o container de itens
+                const containerItens = document.getElementById('carrinho-itens');
+                if (containerItens && containerItens.parentNode) {
+                    containerItens.parentNode.insertBefore(resumoContainer, containerItens.nextSibling);
+                }
+            }
+            
+            // Atualizar conteúdo do resumo
+            resumoContainer.innerHTML = `
+                <div class="space-y-2">
+                    <!-- Linha de separação -->
+                    <div class="border-t border-gray-300 pt-3">
+                        <!-- Quantidade total -->
+                        <div class="flex justify-between items-center text-sm text-gray-600 mb-2">
+                            <span>Total de itens:</span>
+                            <span class="font-medium">${totais.quantidadeTotal} ${totais.quantidadeTotal === 1 ? 'item' : 'itens'}</span>
+                        </div>
+                        
+                        <!-- Valor total destacado -->
+                        <div class="flex justify-between items-center py-2 border-t border-gray-200">
+                            <span class="text-lg font-semibold text-gray-800">Valor Total:</span>
+                            <span class="text-xl font-bold text-primary-dynamic">${formatarMoedaBR(totais.valorTotal)}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Nota sobre taxas (se for delivery) -->
+                    <div class="text-xs text-gray-500 text-center pt-2 border-t border-gray-100">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Taxa de entrega será informada na próxima etapa (se aplicável)
+                    </div>
+                </div>
+            `;
+            
+            // Mostrar o container
+            resumoContainer.classList.remove('hidden');
+            
+            // Atualizar também elemento específico se existir
+            const valorTotalElement = document.getElementById('valor-total-carrinho');
+            if (valorTotalElement) {
+                valorTotalElement.textContent = formatarMoedaBR(totais.valorTotal);
             }
         }
 
@@ -4294,6 +4457,11 @@ Variações: ${variacoesTexto.join(', ')}`;
                     console.log('Total de itens atualizado para:', totalItens);
                 }
 
+                // Re-renderizar carrinho para atualizar preços
+                setTimeout(() => {
+                    renderizarItensCarrinho();
+                }, 100);
+
                 // Feedback visual temporário
                 const mensagem = document.createElement('div');
                 mensagem.className = 'fixed bottom-4 right-4 bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 rounded shadow-lg z-50 animate-fade-in-out';
@@ -4374,6 +4542,11 @@ Variações: ${variacoesTexto.join(', ')}`;
                         btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     }
                 });
+
+                // Re-renderizar carrinho para atualizar preços
+                setTimeout(() => {
+                    renderizarItensCarrinho();
+                }, 100);
 
                 // Exibir mensagem de feedback
                 const mensagem = document.createElement('div');
