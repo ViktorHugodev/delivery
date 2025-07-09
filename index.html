@@ -5750,6 +5750,33 @@ Variações: ${variacoesTexto.join(', ')}`;
             }
 
             /**
+             * Função para extrair valor numérico do preço formatado
+             * Converte "R$ 45,00" para 45.00 (número)
+             */
+            function extrairValorNumericoPreco(precoFormatado) {
+                if (!precoFormatado || precoFormatado === '' || precoFormatado.toLowerCase().includes('consulte')) {
+                    return 0;
+                }
+                
+                // Remover "R$", espaços e converter vírgula para ponto
+                const valorLimpo = precoFormatado
+                    .replace(/R\$|\s/g, '')  // Remove R$ e espaços
+                    .replace(',', '.');       // Substitui vírgula por ponto
+                
+                // Converter para número
+                const valorNumerico = parseFloat(valorLimpo);
+                
+                // Verificar se é um número válido
+                if (isNaN(valorNumerico)) {
+                    console.warn('Preço inválido encontrado:', precoFormatado);
+                    return 0;
+                }
+                
+                console.log(`Preço processado: "${precoFormatado}" → ${valorNumerico}`);
+                return valorNumerico;
+            }
+
+            /**
              * Função simplificada para adicionar itens ao carrinho
              * Esta função não depende do objeto Carrinho complexo
              * @param {string} id - ID do item
@@ -5757,155 +5784,314 @@ Variações: ${variacoesTexto.join(', ')}`;
              * @param {HTMLElement} botao - O botão que foi clicado
              */
             function adicionarAoCarrinhoSimples(id, titulo, botao, precoAdicional = 0) {
-                console.log('Adicionando ao carrinho simplificado:', { id, titulo, precoAdicional });
+                console.log('=== INICIANDO ADIÇÃO AO CARRINHO ===');
+                console.log('ID:', id);
+                console.log('Título:', titulo);
+                console.log('Preço adicional:', precoAdicional);
+                console.log('Botão:', botao);
 
-                // Obter quantidade do input associado
-                const input = document.querySelector(`.quantidade-input[data-item-id="${id}"]`);
-                const quantidade = input ? parseInt(input.value) || 1 : 1;
-
-                // Carrinho no localStorage
-                let carrinho = JSON.parse(localStorage.getItem('carrinho') || '[]');
-
-                // Tentar obter a URL da imagem do item
-                let imagemURL = '';
                 try {
-                    // Primeiro tenta encontrar a imagem no card do menu-item
-                    const menuItem = botao.closest('.menu-item');
-                    if (menuItem) {
-                        // Procurar pela imagem na estrutura do card
-                        const img = menuItem.querySelector('.item-image img') || menuItem.querySelector('img');
-                        if (img) {
-                            // Capturar a URL completa da imagem
-                            if (img.currentSrc) {
-                                // currentSrc retorna a URL completa da imagem carregada
-                                imagemURL = img.currentSrc;
-                            } else if (img.src) {
-                                // Fallback para src se currentSrc não estiver disponível
-                                imagemURL = img.src;
-                            } else {
-                                // Último recurso: tentar obter o atributo src
-                                imagemURL = img.getAttribute('src') || '';
-                            }
+                    // Obter quantidade do input associado
+                    const input = document.querySelector(`.quantidade-input[data-item-id="${id}"]`);
+                    const quantidade = input ? parseInt(input.value) || 1 : 1;
+                    console.log('Quantidade selecionada:', quantidade);
 
-                            // Garantir que a URL seja absoluta
-                            if (imagemURL && !imagemURL.startsWith('http') && !imagemURL.startsWith('data:')) {
-                                // Converter URL relativa para absoluta
-                                const base = window.location.origin;
-                                imagemURL = new URL(imagemURL, base).href;
+                    // Carrinho no localStorage
+                    let carrinho = JSON.parse(localStorage.getItem('carrinho') || '[]');
+
+                    // Tentar obter a URL da imagem do item
+                    let imagemURL = '';
+                    try {
+                        const menuItem = botao.closest('.menu-item');
+                        if (menuItem) {
+                            const img = menuItem.querySelector('img');
+                            if (img && img.src) {
+                                imagemURL = img.src;
+                                console.log('Imagem capturada:', imagemURL);
                             }
                         }
-                    } else {
-                        // Tenta encontrar em outras estruturas possíveis
-                        const card = botao.closest('.card') || botao.closest('.item-card');
-                        if (card) {
-                            const img = card.querySelector('img');
-                            if (img) {
-                                imagemURL = img.currentSrc || img.src || img.getAttribute('src') || '';
+                    } catch (e) {
+                        console.error('Erro ao obter imagem:', e);
+                    }
 
-                                // Garantir que a URL seja absoluta
-                                if (imagemURL && !imagemURL.startsWith('http') && !imagemURL.startsWith('data:')) {
-                                    const base = window.location.origin;
-                                    imagemURL = new URL(imagemURL, base).href;
+                    // CAPTURA DO PREÇO - MÚLTIPLOS MÉTODOS
+                    let precoBase = 0;
+                    
+                    console.log('=== INICIANDO CAPTURA DE PREÇO ===');
+                    
+                    const card = botao.closest('.menu-item');
+                    console.log('Card encontrado:', !!card);
+                    
+                    if (card) {
+                        // Método 1: Buscar por .price-highlight span
+                        console.log('Tentando método 1: .price-highlight span');
+                        let precoElement = card.querySelector('.price-highlight span');
+                        console.log('Elemento preço método 1:', precoElement);
+                        
+                        if (precoElement) {
+                            const precoTexto = precoElement.textContent.trim();
+                            console.log('Texto do preço encontrado:', precoTexto);
+                            precoBase = extrairValorNumericoPreco(precoTexto);
+                            console.log('Preço extraído método 1:', precoBase);
+                        }
+                        
+                        // Método 2: Se não funcionou, buscar qualquer span com texto de preço
+                        if (precoBase === 0) {
+                            console.log('Tentando método 2: qualquer span com R$');
+                            const spans = card.querySelectorAll('span');
+                            console.log('Total de spans encontrados:', spans.length);
+                            
+                            for (let span of spans) {
+                                const texto = span.textContent.trim();
+                                console.log('Verificando span:', texto);
+                                
+                                if (texto.includes('R$')) {
+                                    console.log('Span com R$ encontrado:', texto);
+                                    precoBase = extrairValorNumericoPreco(texto);
+                                    if (precoBase > 0) {
+                                        console.log('Preço extraído método 2:', precoBase);
+                                        break;
+                                    }
                                 }
                             }
                         }
-                    }
-
-                    // Verificar se a URL é válida
-                    if (imagemURL) {
-                        console.log('Imagem capturada para o carrinho:', imagemURL);
-                    } else {
-                        console.log('Nenhuma imagem encontrada para o item');
-                    }
-                } catch (e) {
-                    console.error('Erro ao obter imagem do item:', e);
-                }
-
-                // Gerar um ID único para cada item adicionado ao carrinho
-                // Isso permite que o mesmo produto seja adicionado várias vezes com personalizações independentes
-                const uniqueId = `${id}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-
-                // Verificar se o campo de observação deve ser incluído
-                const incluirObservacao = dadosGlobais.config['Step-1-itens-obs'] === 'Sim';
-
-                // Verificar se o item já existe no carrinho pelo ID original e adicionar apenas a quantidade
-                // Comentando essa parte para que cada clique represente apenas 1 adição independente
-                // Isso permite que o usuário adicione o mesmo produto várias vezes conforme necessário
-
-                // Obter o preço base do produto na card
-                let precoBase = 0;
-                try {
-                    const card = botao.closest('.menu-item');
-                    if (card) {
-                        const precoElement = card.querySelector('.price-highlight span');
-                        if (precoElement) {
-                            // Extrair valor numérico do preço exibido (removendo "R$ " e substituindo vírgula por ponto)
-                            const precoTexto = precoElement.textContent.replace('R$ ', '').replace(',', '.');
-                            precoBase = parseFloat(precoTexto);
+                        
+                        // Método 3: Buscar por classe específica do preço
+                        if (precoBase === 0) {
+                            console.log('Tentando método 3: .font-bold');
+                            const fontBoldElements = card.querySelectorAll('.font-bold');
+                            console.log('Elementos font-bold encontrados:', fontBoldElements.length);
+                            
+                            for (let element of fontBoldElements) {
+                                const texto = element.textContent.trim();
+                                console.log('Verificando font-bold:', texto);
+                                
+                                if (texto.includes('R$')) {
+                                    console.log('Font-bold com R$ encontrado:', texto);
+                                    precoBase = extrairValorNumericoPreco(texto);
+                                    if (precoBase > 0) {
+                                        console.log('Preço extraído método 3:', precoBase);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Método 4: Buscar em toda a estrutura do card
+                        if (precoBase === 0) {
+                            console.log('Tentando método 4: busca geral no card');
+                            const textoCompleto = card.textContent;
+                            console.log('Texto completo do card:', textoCompleto.substring(0, 200) + '...');
+                            
+                            // Regex para encontrar padrões de preço
+                            const regexPreco = /R\$\s*\d+[,.]?\d*/g;
+                            const precos = textoCompleto.match(regexPreco);
+                            console.log('Preços encontrados por regex:', precos);
+                            
+                            if (precos && precos.length > 0) {
+                                precoBase = extrairValorNumericoPreco(precos[0]);
+                                console.log('Preço extraído método 4:', precoBase);
+                            }
                         }
                     }
-                } catch (e) {
-                    console.error('Erro ao obter preço base do card:', e);
-                }
 
-                // Adicionar item com a quantidade selecionada pelo usuário
-                carrinho.push({
-                    id: uniqueId,      // ID único para este item específico no carrinho
-                    originalId: id,    // ID original do produto para referência
-                    titulo,
-                    quantidade: quantidade,      // Usar a quantidade que o usuário selecionou
-                    imagem: imagemURL,
-                    precoBase: precoBase,      // Preço base do produto
-                    precoAdicional: precoAdicional || 0, // Preço adicional das variações
-                    precoTotal: precoBase + (precoAdicional || 0),    // Preço total com as variações
-                    ...(incluirObservacao ? { observacao: '' } : {})
-                });
+                    console.log('=== RESULTADO DA CAPTURA DE PREÇO ===');
+                    console.log('Preço base final:', precoBase);
+                    
+                    if (precoBase === 0) {
+                        console.error('⚠️ ERRO: Não foi possível capturar o preço do produto!');
+                        console.log('Estrutura do card:', card ? card.innerHTML.substring(0, 500) : 'Card não encontrado');
+                    }
 
-                console.log(`Item adicionado com quantidade ${quantidade}:`, titulo);
+                    // Gerar ID único para o item no carrinho
+                    const uniqueId = `${id}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
-                // Salvar no localStorage
-                localStorage.setItem('carrinho', JSON.stringify(carrinho));
+                    // Verificar se o campo de observação deve ser incluído
+                    const incluirObservacao = dadosGlobais.config && dadosGlobais.config['Step-1-itens-obs'] === 'Sim';
 
-                // Atualizar interface
-                atualizarContadorCarrinho();
+                    // Calcular preço total do item
+                    const precoTotalItem = precoBase + (precoAdicional || 0);
 
-                // Atualizar o contador no título do carrinho
-                const totalItensCarrinho = document.getElementById('total-itens-carrinho');
-                if (totalItensCarrinho) {
-                    // Calcular o total de itens somando todas as quantidades
-                    const totalItens = carrinho.reduce((acc, item) => acc + item.quantidade, 0);
-                    totalItensCarrinho.textContent = totalItens;
-                    console.log('Total de itens atualizado para:', totalItens, 'após adicionar item');
-                }
+                    // Criar objeto do item para o carrinho
+                    const itemCarrinho = {
+                        id: uniqueId,
+                        originalId: id,
+                        titulo: titulo,
+                        quantidade: quantidade,
+                        imagem: imagemURL,
+                        precoBase: precoBase,
+                        precoAdicional: precoAdicional || 0,
+                        precoTotal: precoTotalItem,
+                        ...(incluirObservacao ? { observacao: '' } : {})
+                    };
 
-                // Feedback visual
-                const textoSpan = botao.querySelector('span');
-                const iconeCarrinho = botao.querySelector('svg');
+                    console.log('=== ITEM CRIADO PARA O CARRINHO ===');
+                    console.log('Item completo:', itemCarrinho);
 
-                if (textoSpan) {
-                    textoSpan.textContent = 'Adicionado';
-                }
+                    // Adicionar ao carrinho
+                    carrinho.push(itemCarrinho);
 
-                // Substituir o ícone de carrinho por um ícone de check
-                if (iconeCarrinho) {
-                    iconeCarrinho.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />';
-                }
+                    // Salvar no localStorage
+                    localStorage.setItem('carrinho', JSON.stringify(carrinho));
+                    console.log('Carrinho salvo no localStorage');
 
-                botao.classList.add('bg-green-600');
+                    // Atualizar interface
+                    atualizarContadorCarrinho();
 
-                setTimeout(() => {
+                    // Atualizar o contador no título do carrinho
+                    const totalItensCarrinho = document.getElementById('total-itens-carrinho');
+                    if (totalItensCarrinho) {
+                        const totalItens = carrinho.reduce((acc, item) => acc + item.quantidade, 0);
+                        totalItensCarrinho.textContent = totalItens;
+                        console.log('Total de itens atualizado para:', totalItens);
+                    }
+
+                    // Feedback visual no botão
+                    const textoSpan = botao.querySelector('span');
+                    const iconeCarrinho = botao.querySelector('svg');
+
                     if (textoSpan) {
-                        textoSpan.textContent = 'Adicionar';
+                        textoSpan.textContent = 'Adicionado';
                     }
 
-                    // Restaurar o ícone de carrinho
                     if (iconeCarrinho) {
-                        iconeCarrinho.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />';
+                        iconeCarrinho.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />';
                     }
 
-                    botao.classList.remove('bg-green-600');
-                }, 1500);
+                    botao.classList.add('bg-green-600');
+
+                    setTimeout(() => {
+                        if (textoSpan) {
+                            textoSpan.textContent = 'Adicionar';
+                        }
+
+                        if (iconeCarrinho) {
+                            iconeCarrinho.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />';
+                        }
+
+                        botao.classList.remove('bg-green-600');
+                    }, 1500);
+
+                    console.log('=== ITEM ADICIONADO COM SUCESSO ===');
+                    
+                    // Se o preço ainda for 0, mostrar alerta para debug
+                    if (precoBase === 0) {
+                        console.warn('⚠️ ATENÇÃO: Item adicionado com preço 0. Verifique a estrutura HTML do card.');
+                    }
+                    
+                } catch (error) {
+                    console.error('Erro ao adicionar item ao carrinho:', error);
+                    alert('Erro ao adicionar item ao carrinho. Tente novamente.');
+                }
             }
+
+            /**
+             * Função para debugar a estrutura de preços no DOM
+             */
+            function debugEstruturaPrecosDOM() {
+                console.log('=== DEBUG ESTRUTURA DE PREÇOS NO DOM ===');
+                
+                const menuItems = document.querySelectorAll('.menu-item');
+                console.log(`Total de menu-items encontrados: ${menuItems.length}`);
+                
+                // Analisar os primeiros 3 cards
+                menuItems.forEach((card, index) => {
+                    if (index < 3) {
+                        console.log(`\n--- CARD ${index + 1} ---`);
+                        
+                        // Buscar elementos de preço
+                        const priceHighlight = card.querySelector('.price-highlight');
+                        console.log('price-highlight encontrado:', !!priceHighlight);
+                        
+                        if (priceHighlight) {
+                            console.log('HTML do price-highlight:', priceHighlight.innerHTML);
+                            
+                            const span = priceHighlight.querySelector('span');
+                            console.log('Span dentro do price-highlight:', !!span);
+                            
+                            if (span) {
+                                console.log('Texto do span:', span.textContent);
+                                console.log('Classes do span:', span.className);
+                            }
+                        }
+                        
+                        // Buscar todos os spans com R$
+                        const spansComRS = card.querySelectorAll('span');
+                        console.log(`Total de spans no card: ${spansComRS.length}`);
+                        
+                        spansComRS.forEach((span, spanIndex) => {
+                            const texto = span.textContent.trim();
+                            if (texto.includes('R$')) {
+                                console.log(`Span ${spanIndex} com R$: "${texto}"`);
+                            }
+                        });
+                        
+                        // Mostrar título do produto para identificação
+                        const titulo = card.querySelector('h3');
+                        console.log('Título do produto:', titulo ? titulo.textContent : 'Não encontrado');
+                    }
+                });
+                
+                console.log('=== FIM DEBUG ESTRUTURA ===\n');
+            }
+
+            /**
+             * Função para testar captura de preço de um card específico
+             * Use no console: testarCapturaPreco(0) para testar o primeiro card
+             */
+            function testarCapturaPreco(indiceCard = 0) {
+                console.log(`=== TESTANDO CAPTURA DO CARD ${indiceCard} ===`);
+                
+                const cards = document.querySelectorAll('.menu-item');
+                if (indiceCard >= cards.length) {
+                    console.error('Índice inválido. Total de cards:', cards.length);
+                    return;
+                }
+                
+                const card = cards[indiceCard];
+                console.log('Card selecionado:', card);
+                
+                // Teste 1: .price-highlight span
+                const metodo1 = card.querySelector('.price-highlight span');
+                console.log('Método 1 (.price-highlight span):', metodo1 ? metodo1.textContent : 'Não encontrado');
+                
+                // Teste 2: qualquer span com R$
+                const spans = card.querySelectorAll('span');
+                console.log('Total de spans:', spans.length);
+                spans.forEach((span, i) => {
+                    const texto = span.textContent.trim();
+                    if (texto.includes('R$')) {
+                        console.log(`Span ${i} com R$: "${texto}"`);
+                    }
+                });
+                
+                // Teste 3: busca por regex
+                const textoCompleto = card.textContent;
+                const regexPreco = /R\$\s*\d+[,.]?\d*/g;
+                const precos = textoCompleto.match(regexPreco);
+                console.log('Preços por regex:', precos);
+                
+                console.log('=== FIM TESTE ===');
+            }
+
+            // Tornar funções globais para uso no console
+            window.debugEstruturaPrecosDOM = debugEstruturaPrecosDOM;
+            window.testarCapturaPreco = testarCapturaPreco;
+
+            // Executar debug quando a página carregar
+            document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(() => {
+                    debugEstruturaPrecosDOM();
+                    
+                    // Logs de orientação para o usuário
+                    console.log('=== SISTEMA DE PREÇOS INICIALIZADO ===');
+                    console.log('Para debug, use no console:');
+                    console.log('- debugEstruturaPrecosDOM() - analisa estrutura dos cards');
+                    console.log('- testarCapturaPreco(0) - testa captura do primeiro card');
+                    console.log('- testarCapturaPreco(1) - testa captura do segundo card');
+                    console.log('=======================================');
+                }, 3000);
+            });
     </script>
     <script>
             // Navegação de scroll vertical para menu desktop
