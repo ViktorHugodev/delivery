@@ -72,6 +72,516 @@
     <!-- Arquivo de configuração externo - edite este arquivo para personalizar seu cardápio -->
     <script src="config.js"></script>
 
+    <!-- Sistema de Fontes Customizadas - Estilo Elegante -->
+    <script>
+    /**
+     * Sistema Avançado de Fontes Customizadas
+     * Estilo Elegante com Lato + Playfair Display + Source Code Pro
+     * Desenvolvido por Dante Testa (https://dantetesta.com.br)
+     */
+    const SistemaFontesElegante = {
+        // Estado do sistema
+        fontesCarregadas: false,
+        observadorAtivo: false,
+        
+        // Inicializar sistema completo
+        init() {
+            console.log('🎨 Inicializando Sistema de Fontes Elegante...');
+            
+            // Verificar se configuração existe
+            if (typeof CONFIG_FONTES === 'undefined') {
+                console.error('❌ CONFIG_FONTES não encontrado!');
+                return false;
+            }
+            
+            console.log('📝 Configuração de fontes:', CONFIG_FONTES);
+            
+            // Executar carregamento em sequência
+            this.precarregarGoogleFonts()
+                .then(() => this.criarEstilosCSS())
+                .then(() => this.aplicarFontesImediatas())
+                .then(() => this.iniciarObservadorDOM())
+                .then(() => {
+                    this.fontesCarregadas = true;
+                    console.log('✅ Sistema de fontes carregado com sucesso!');
+                    
+                    // Aplicar fontes após carregamento de dados
+                    this.aguardarCarregamentoDados();
+                })
+                .catch(error => {
+                    console.error('❌ Erro ao carregar sistema de fontes:', error);
+                });
+            
+            return true;
+        },
+        
+        // Pré-carregar Google Fonts com otimizações
+        async precarregarGoogleFonts() {
+            console.log('📦 Carregando Google Fonts...');
+            
+            try {
+                // Preconnect para melhor performance
+                if (CONFIG_FONTES.preconnect) {
+                    this.adicionarPreconnect('https://fonts.googleapis.com');
+                    this.adicionarPreconnect('https://fonts.gstatic.com');
+                }
+                
+                // Coletar fontes únicas
+                const fontesUnicas = new Set([
+                    CONFIG_FONTES.fontePrincipal,
+                    CONFIG_FONTES.fonteTitulos,
+                    CONFIG_FONTES.fontePrecos
+                ]);
+                
+                // Construir URL do Google Fonts
+                const fontesFormatadas = Array.from(fontesUnicas).map(fonte => {
+                    const pesos = CONFIG_FONTES.pesosCarregados.join(';');
+                    const fonteFormatada = fonte.replace(/\s+/g, '+');
+                    return `family=${fonteFormatada}:ital,wght@0,${pesos};1,${pesos}`;
+                });
+                
+                const displayParam = CONFIG_FONTES.displaySwap ? '&display=swap' : '';
+                const googleFontsUrl = `https://fonts.googleapis.com/css2?${fontesFormatadas.join('&')}${displayParam}`;
+                
+                // Criar e carregar stylesheet
+                const linkElement = document.createElement('link');
+                linkElement.rel = 'stylesheet';
+                linkElement.href = googleFontsUrl;
+                linkElement.onload = () => console.log('✅ Google Fonts carregadas');
+                linkElement.onerror = () => console.error('❌ Erro ao carregar Google Fonts');
+                
+                document.head.appendChild(linkElement);
+                
+                console.log('🔗 URL Google Fonts:', googleFontsUrl);
+                
+                // Aguardar carregamento
+                return new Promise((resolve) => {
+                    linkElement.onload = resolve;
+                    // Timeout de segurança
+                    setTimeout(resolve, 3000);
+                });
+                
+            } catch (error) {
+                console.error('❌ Erro no precarregamento:', error);
+                throw error;
+            }
+        },
+        
+        // Adicionar preconnect para performance
+        adicionarPreconnect(url) {
+            const link = document.createElement('link');
+            link.rel = 'preconnect';
+            link.href = url;
+            if (url.includes('gstatic')) {
+                link.crossOrigin = 'anonymous';
+            }
+            document.head.appendChild(link);
+        },
+        
+        // Criar estilos CSS avançados
+        criarEstilosCSS() {
+            console.log('🎨 Aplicando estilos CSS elegantes...');
+            
+            const styleElement = document.createElement('style');
+            styleElement.id = 'fontes-elegantes';
+            
+            styleElement.textContent = `
+                /* ===== SISTEMA DE FONTES ELEGANTE ===== */
+                /* Desenvolvido por Dante Testa */
+                
+                /* Configurações globais de renderização */
+                * {
+                    ${CONFIG_TIPOGRAFIA?.fontSmoothing ? `
+                    -webkit-font-smoothing: antialiased;
+                    -moz-osx-font-smoothing: grayscale;
+                    ` : ''}
+                    ${CONFIG_TIPOGRAFIA?.textRendering ? `
+                    text-rendering: ${CONFIG_TIPOGRAFIA.textRendering};
+                    ` : ''}
+                }
+                
+                /* Fonte principal - Lato (textos gerais) */
+                body,
+                p,
+                div:not(.titulo):not(.preco),
+                span:not(.titulo):not(.preco),
+                input,
+                textarea,
+                select,
+                button:not(.titulo):not(.preco),
+                .text-sm,
+                .text-base,
+                .text-lg,
+                .text-gray-600,
+                .text-gray-700,
+                .text-gray-800,
+                .text-gray-900,
+                .descricao-item,
+                .menu-item-content p,
+                .form-group label,
+                .observacao-item {
+                    font-family: '${CONFIG_FONTES.fontePrincipal}', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+                    font-weight: ${CONFIG_FONTES.pesoPadrao} !important;
+                    font-size: ${CONFIG_FONTES.tamanhoTexto} !important;
+                    line-height: ${CONFIG_FONTES.alturaLinha} !important;
+                }
+                
+                /* Fonte para títulos - Playfair Display (elegante) */
+                h1, h2, h3, h4, h5, h6,
+                .titulo,
+                .font-bold:not(.preco),
+                .font-semibold:not(.preco),
+                .menu-item h3,
+                .menu-item-title,
+                #nome-empresa,
+                .text-xl:not(.preco),
+                .text-2xl:not(.preco),
+                .text-3xl:not(.preco),
+                .text-4xl:not(.preco),
+                .categoria-titulo,
+                .modal-titulo,
+                .section-title,
+                .card-title {
+                    font-family: '${CONFIG_FONTES.fonteTitulos}', Georgia, 'Times New Roman', serif !important;
+                    font-weight: ${CONFIG_FONTES.pesoTitulos} !important;
+                    font-size: ${CONFIG_FONTES.tamanhoTitulo} !important;
+                    line-height: ${CONFIG_FONTES.alturaLinhaTitulos} !important;
+                    letter-spacing: ${CONFIG_FONTES.espacamentoTitulos} !important;
+                }
+                
+                /* Fonte para preços - Source Code Pro (monospace elegante) */
+                .price-highlight,
+                .price-highlight span,
+                .preco,
+                .font-bold.preco,
+                .valor-total,
+                .menu-item-pill.price-highlight span,
+                #valor-total-carrinho,
+                .precoUnitario,
+                .precoTotal,
+                .resumo-preco,
+                .toast-notification .font-bold {
+                    font-family: '${CONFIG_FONTES.fontePrecos}', 'Courier New', monospace !important;
+                    font-weight: ${CONFIG_FONTES.pesoPrecos} !important;
+                    font-size: ${CONFIG_FONTES.tamanhoPreco} !important;
+                    letter-spacing: ${CONFIG_FONTES.espacamentoPrecos} !important;
+                    line-height: 1.4 !important;
+                }
+                
+                /* Estilos específicos para seções (baseado em CONFIG_TIPOGRAFIA) */
+                
+                /* Header - Nome da empresa */
+                #nome-empresa {
+                    font-family: '${CONFIG_FONTES.fonteTitulos}', serif !important;
+                    font-weight: 800 !important;
+                    font-size: 2rem !important;
+                    letter-spacing: 0.02em !important;
+                }
+                
+                /* Títulos de categorias */
+                .categoria-secao h2 {
+                    font-family: '${CONFIG_FONTES.fonteTitulos}', serif !important;
+                    font-weight: 700 !important;
+                    font-size: 1.75rem !important;
+                    letter-spacing: 0.025em !important;
+                    margin-bottom: 1rem !important;
+                }
+                
+                /* Títulos dos produtos */
+                .menu-item h3,
+                .menu-item-title {
+                    font-family: '${CONFIG_FONTES.fonteTitulos}', serif !important;
+                    font-weight: 700 !important;
+                    font-size: 1.25rem !important;
+                    letter-spacing: 0.02em !important;
+                    line-height: 1.3 !important;
+                }
+                
+                /* Descrições dos produtos */
+                .menu-item-content p,
+                .descricao-item {
+                    font-family: '${CONFIG_FONTES.fontePrincipal}', sans-serif !important;
+                    font-weight: 400 !important;
+                    font-size: 0.95rem !important;
+                    line-height: 1.6 !important;
+                    color: #6B7280 !important;
+                }
+                
+                /* Preços destacados */
+                .price-highlight span {
+                    font-family: '${CONFIG_FONTES.fontePrecos}', monospace !important;
+                    font-weight: 600 !important;
+                    font-size: 1.1rem !important;
+                    letter-spacing: 0.01em !important;
+                }
+                
+                /* Rodapé */
+                footer p,
+                footer span,
+                footer div {
+                    font-family: '${CONFIG_FONTES.fontePrincipal}', sans-serif !important;
+                    font-weight: 400 !important;
+                    font-size: 0.9rem !important;
+                }
+                
+                /* Botões */
+                button,
+                .btn {
+                    font-family: '${CONFIG_FONTES.fontePrincipal}', sans-serif !important;
+                    font-weight: 500 !important;
+                }
+                
+                /* Campos de formulário */
+                input[type="text"],
+                input[type="email"],
+                input[type="tel"],
+                textarea,
+                select {
+                    font-family: '${CONFIG_FONTES.fontePrincipal}', sans-serif !important;
+                    font-weight: 400 !important;
+                    font-size: 1rem !important;
+                }
+                
+                /* Responsividade para mobile */
+                @media (max-width: 768px) {
+                    body,
+                    p,
+                    div:not(.titulo):not(.preco),
+                    span:not(.titulo):not(.preco) {
+                        font-size: calc(${CONFIG_FONTES.tamanhoTexto} * ${CONFIG_FONTES.fatorMobile}) !important;
+                    }
+                    
+                    h1, h2, h3, h4, h5, h6,
+                    .titulo,
+                    .menu-item h3 {
+                        font-size: calc(${CONFIG_FONTES.tamanhoTitulo} * ${CONFIG_FONTES.fatorTituloMobile}) !important;
+                    }
+                    
+                    .price-highlight span,
+                    .preco {
+                        font-size: calc(${CONFIG_FONTES.tamanhoPreco} * 1.05) !important;
+                    }
+                    
+                    #nome-empresa {
+                        font-size: 1.75rem !important;
+                    }
+                    
+                    .categoria-secao h2 {
+                        font-size: 1.5rem !important;
+                    }
+                }
+                
+                /* Animações suaves para mudanças de fonte */
+                * {
+                    transition: font-family 0.3s ease, font-weight 0.3s ease !important;
+                }
+                
+                /* Classes utilitárias */
+                .font-principal { font-family: '${CONFIG_FONTES.fontePrincipal}', sans-serif !important; }
+                .font-titulo { font-family: '${CONFIG_FONTES.fonteTitulos}', serif !important; }
+                .font-preco { font-family: '${CONFIG_FONTES.fontePrecos}', monospace !important; }
+                
+                /* Estados de carregamento */
+                .font-loading {
+                    opacity: 0.7;
+                    transition: opacity 0.3s ease;
+                }
+                
+                .font-loaded {
+                    opacity: 1;
+                }
+            `;
+            
+            document.head.appendChild(styleElement);
+            console.log('✅ Estilos CSS aplicados');
+            
+            return Promise.resolve();
+        },
+        
+        // Aplicar fontes imediatamente nos elementos existentes
+        aplicarFontesImediatas() {
+            console.log('⚡ Aplicando fontes nos elementos existentes...');
+            
+            // Adicionar classes aos elementos principais
+            document.body.classList.add('font-principal', 'font-loading');
+            
+            // Marcar elementos de título
+            document.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(el => {
+                el.classList.add('titulo');
+            });
+            
+            // Marcar elementos de preço (se já existirem)
+            document.querySelectorAll('.price-highlight span, [class*="preco"]').forEach(el => {
+                el.classList.add('preco');
+            });
+            
+            return Promise.resolve();
+        },
+        
+        // Iniciar observador do DOM para elementos dinâmicos
+        iniciarObservadorDOM() {
+            if (this.observadorAtivo) return Promise.resolve();
+            
+            console.log('👁️ Iniciando observador de DOM...');
+            
+            const observer = new MutationObserver((mutations) => {
+                let deveAplicar = false;
+                
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                        // Verificar se foram adicionados elementos relevantes
+                        mutation.addedNodes.forEach((node) => {
+                            if (node.nodeType === Node.ELEMENT_NODE) {
+                                const elemento = node;
+                                
+                                // Verificar se é um elemento que precisa de fontes
+                                if (elemento.matches('h1, h2, h3, h4, h5, h6, .menu-item, .categoria-secao, .price-highlight')) {
+                                    deveAplicar = true;
+                                }
+                                
+                                // Verificar elementos filhos
+                                if (elemento.querySelector('h1, h2, h3, h4, h5, h6, .price-highlight, .menu-item')) {
+                                    deveAplicar = true;
+                                }
+                            }
+                        });
+                    }
+                });
+                
+                if (deveAplicar) {
+                    // Debounce para evitar múltiplas aplicações
+                    clearTimeout(this.timeoutAplicacao);
+                    this.timeoutAplicacao = setTimeout(() => {
+                        this.aplicarFontesElementosDinamicos();
+                    }, 100);
+                }
+            });
+            
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+            
+            this.observadorAtivo = true;
+            console.log('✅ Observador DOM ativo');
+            
+            return Promise.resolve();
+        },
+        
+        // Aplicar fontes em elementos adicionados dinamicamente
+        aplicarFontesElementosDinamicos() {
+            console.log('🔄 Aplicando fontes em elementos dinâmicos...');
+            
+            // Títulos
+            document.querySelectorAll('h1, h2, h3, h4, h5, h6, .menu-item h3, #nome-empresa').forEach(el => {
+                if (!el.classList.contains('titulo')) {
+                    el.classList.add('titulo');
+                    el.style.fontFamily = `'${CONFIG_FONTES.fonteTitulos}', serif`;
+                    el.style.fontWeight = CONFIG_FONTES.pesoTitulos;
+                    el.style.letterSpacing = CONFIG_FONTES.espacamentoTitulos;
+                }
+            });
+            
+            // Preços
+            document.querySelectorAll('.price-highlight span, [class*="preco"], #valor-total-carrinho').forEach(el => {
+                if (!el.classList.contains('preco')) {
+                    el.classList.add('preco');
+                    el.style.fontFamily = `'${CONFIG_FONTES.fontePrecos}', monospace`;
+                    el.style.fontWeight = CONFIG_FONTES.pesoPrecos;
+                    el.style.letterSpacing = CONFIG_FONTES.espacamentoPrecos;
+                }
+            });
+            
+            // Textos gerais
+            document.querySelectorAll('p, .text-gray-600, .descricao-item').forEach(el => {
+                if (!el.closest('.price-highlight') && !el.classList.contains('preco') && !el.classList.contains('titulo')) {
+                    el.style.fontFamily = `'${CONFIG_FONTES.fontePrincipal}', sans-serif`;
+                    el.style.fontWeight = CONFIG_FONTES.pesoPadrao;
+                }
+            });
+            
+            // Remover estado de carregamento
+            document.body.classList.remove('font-loading');
+            document.body.classList.add('font-loaded');
+        },
+        
+        // Aguardar carregamento dos dados do cardápio
+        aguardarCarregamentoDados() {
+            console.log('⏳ Aguardando carregamento dos dados...');
+            
+            // Verificar periodicamente se os dados foram carregados
+            const verificarDados = () => {
+                if (document.querySelector('.menu-item, .categoria-secao')) {
+                    console.log('📊 Dados carregados, aplicando fontes finais...');
+                    setTimeout(() => {
+                        this.aplicarFontesElementosDinamicos();
+                        this.aplicarFontesEspeciais();
+                    }, 500);
+                    return;
+                }
+                
+                // Tentar novamente em 500ms
+                setTimeout(verificarDados, 500);
+            };
+            
+            verificarDados();
+            
+            // Aplicar também quando a página estiver completamente carregada
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    this.aplicarFontesElementosDinamicos();
+                    this.aplicarFontesEspeciais();
+                }, 1000);
+            });
+        },
+        
+        // Aplicar fontes especiais em elementos específicos
+        aplicarFontesEspeciais() {
+            console.log('✨ Aplicando fontes especiais...');
+            
+            // Nome da empresa com fonte extra bold
+            const nomeEmpresa = document.getElementById('nome-empresa');
+            if (nomeEmpresa) {
+                nomeEmpresa.style.fontFamily = `'${CONFIG_FONTES.fonteTitulos}', serif`;
+                nomeEmpresa.style.fontWeight = '800';
+                nomeEmpresa.style.fontSize = '2rem';
+                nomeEmpresa.style.letterSpacing = '0.02em';
+            }
+            
+            // Títulos de categorias
+            document.querySelectorAll('.categoria-secao h2').forEach(el => {
+                el.style.fontFamily = `'${CONFIG_FONTES.fonteTitulos}', serif`;
+                el.style.fontWeight = '700';
+                el.style.fontSize = '1.75rem';
+                el.style.letterSpacing = '0.025em';
+            });
+            
+            // Preços em destaque
+            document.querySelectorAll('.price-highlight span').forEach(el => {
+                el.style.fontFamily = `'${CONFIG_FONTES.fontePrecos}', monospace`;
+                el.style.fontWeight = '600';
+                el.style.letterSpacing = '0.01em';
+            });
+            
+            console.log('✅ Fontes especiais aplicadas');
+        }
+    };
+    
+    // Auto-inicialização quando o DOM estiver pronto
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            SistemaFontesElegante.init();
+        });
+    } else {
+        SistemaFontesElegante.init();
+    }
+    
+    // Tornar disponível globalmente para debug
+    window.SistemaFontesElegante = SistemaFontesElegante;
+    
+    console.log('🎨 Sistema de Fontes Elegante carregado e pronto!');
+    </script>
+
     <!-- Favicon (será preenchido dinamicamente) -->
     <link rel="icon" href="" type="image/png">
 
