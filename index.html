@@ -6680,7 +6680,7 @@ Variações: ${variacoesTexto.join(', ')}`;
              * @returns {Promise<Object>} - Resultado da operação
              */
             async function enviarPedidoWebhook(dadosPedido) {
-                const webhookUrl = 'https://webhook.samparon.online/webhook/recebe_pedido';
+                const webhookUrl = 'https://ws-n8n-app-production-529733bfbe81.herokuapp.com/webhook/pedido';
 
                 try {
                     console.log('Enviando pedido para webhook N8N:', dadosPedido);
